@@ -16,3 +16,11 @@ type: log
 - 重构时间安排：晚上 3h 全部给 Java，周末做论文 Wiki 整理 + 八股
 - 移除 LeetCode 安排（暂不需要）
 - 更新 master-plan.md 和 weekly-tracker.md
+
+## [2026-04-07] content | 教程与示例页面
+- 创建 Obsidian & Wiki 使用教程 (plans/obsidian-tutorial.md)
+- 创建示例概念页：PPO (wiki/concepts/ppo.md)
+- 创建示例概念页：RLHF (wiki/concepts/rlhf.md)
+- 创建示例论文页：Schulman 2017 PPO (wiki/papers/schulman-2017-ppo.md)
+- 更新 index.md 索引
+- 优化 Obsidian 配置（shortest link format）

@@ -9,12 +9,13 @@ updated: 2026-04-07
 ## 论文 (wiki/papers/)
 > 论文摘要与深度分析
 
-*尚无条目 — 开始 ingest 论文后自动更新*
+- [[wiki/papers/schulman-2017-ppo|PPO 原论文 (Schulman et al., 2017)]] — 策略梯度经典，RLHF 核心算法
 
 ## 概念 (wiki/concepts/)
 > 核心概念与知识点
 
-*尚无条目*
+- [[wiki/concepts/ppo|PPO]] — 近端策略优化，RLHF 中最常用的 RL 算法
+- [[wiki/concepts/rlhf|RLHF]] — 基于人类反馈的强化学习，LLM 对齐核心技术
 
 ## 实体 (wiki/entities/)
 > 模型、团队、公司、人物
@@ -43,6 +44,7 @@ updated: 2026-04-07
 
 - [[plans/master-plan|秋招备战总计划]]
 - [[plans/weekly-tracker|每周进度追踪]]
+- [[plans/obsidian-tutorial|Obsidian & Wiki 使用教程]]
 
 ---
 *本索引由 LLM 自动维护，每次 ingest/query 操作后更新*
