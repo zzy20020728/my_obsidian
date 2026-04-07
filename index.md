@@ -1,7 +1,7 @@
 ---
 title: Wiki 索引
 type: index
-updated: 2026-04-07
+updated: 2026-04-08
 ---
 
 # Wiki 索引
@@ -17,6 +17,12 @@ updated: 2026-04-07
 - [[wiki/papers/rahman-2025-spark|SPARK (Rahman et al., 2025)]] — 三阶段 PRM 训练，step-level reward 超越 GT RLVR
 - [[wiki/papers/ghimire-2026-prism|PRISM (Ghimire et al., 2026)]] — 系统性证明纯内部信号不可靠，PRM + self-certainty 混合方案
 - [[wiki/papers/wu-2026-self-judge|Self-Judge (Wu et al., 2026)]] — Actor-Judge 多模态无监督自进化，distributional reward modeling
+- [[wiki/papers/royer-2026-mcnig|MCNIG (Royer et al., 2026)]] — 信息论自动生成 PRM 训练数据，O(N) 复杂度，跨任务泛化
+- [[wiki/papers/he-2026-urlvr-scale|How Far Can URLVR Scale? (He et al., 2026)]] — ⭐ICLR 2026，URLVR 统一理论框架，sharpening mechanism，MCS 概念
+
+### RAG + RL
+- [[wiki/papers/wang-2026-prorag|ProRAG (Wang et al., 2026)]] — 四阶段 RAG RL，MCTS-based PRM，dual-granularity advantage
+- [[wiki/papers/tan-2026-ctrl-rag|CTRL-RAG (Tan et al., 2026)]] — Contrastive Likelihood Reward，轻量 RAG faithfulness 信号
 
 ## 概念 (wiki/concepts/)
 > 核心概念与知识点
@@ -31,8 +37,11 @@ updated: 2026-04-07
 ### URLVR 核心概念
 - [[wiki/concepts/semantic-entropy|Semantic Entropy (语义熵)]] — EMPO 的核心 reward 信号
 - [[wiki/concepts/self-consistency|Self-Consistency (自一致性)]] — 多路径采样一致性，URLVR 基础信号
-- [[wiki/concepts/process-reward-model|Process Reward Model (PRM)]] — 步骤级奖励模型，SPARK/PRISM 核心
+- [[wiki/concepts/process-reward-model|Process Reward Model (PRM)]] — 步骤级奖励模型，SPARK/PRISM/MCNIG/ProRAG 核心
 - [[wiki/concepts/reward-hacking|Reward Hacking (奖励攻击)]] — URLVR 最大挑战，所有论文都涉及
+- [[wiki/concepts/information-gain|Information Gain (信息增益)]] — MCNIG 的核心信息论度量
+- [[wiki/concepts/mcts|MCTS (蒙特卡洛树搜索)]] — ProRAG 的 PRM 训练数据探索方法
+- [[wiki/concepts/contrastive-likelihood|Contrastive Likelihood (对比似然)]] — CTRL-RAG 的 faithfulness reward 信号
 
 ## 实体 (wiki/entities/)
 > 模型、团队、公司、人物
@@ -54,7 +63,7 @@ updated: 2026-04-07
 ## 综合分析 (wiki/synthesis/)
 > 跨论文对比与领域综述
 
-- [[wiki/synthesis/urlvr-landscape|URLVR 领域综述]] — 四篇论文多维分类对比，信号来源/打分粒度/Reward 模型/任务类型
+- [[wiki/synthesis/urlvr-landscape|URLVR 领域综述]] — 八篇论文多维分类对比，信号来源/打分粒度/Reward 模型/任务类型/Sharpening 理论
 
 ## 学习计划 (plans/)
 > 秋招备战计划与进度

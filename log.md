@@ -41,3 +41,19 @@ type: log
 - 创建概念页：wiki/concepts/reward-hacking.md（奖励攻击）
 - 创建综合分析：wiki/synthesis/urlvr-landscape.md（URLVR 领域综述，含多维分类对比表格）
 - 更新 index.md 索引（按类别组织所有新条目）
+
+## [2026-04-08] ingest | URLVR 第二批四篇论文摄入
+- 摄入论文：MCNIG (Royer et al., 2026) — 信息论自动生成 PRM 训练数据，O(N) 复杂度
+- 摄入论文：ProRAG (Wang et al., 2026) — 四阶段 RAG RL，MCTS-based PRM，dual-granularity advantage
+- 摄入论文：CTRL-RAG (Tan et al., 2026) — Contrastive Likelihood Reward，轻量 RAG faithfulness 信号
+- 摄入论文：How Far Can URLVR Scale? (He et al., 2026, ICLR) — 统一理论框架 [DRAFT: 仅 abstract]
+- 创建论文页：wiki/papers/royer-2026-mcnig.md
+- 创建论文页：wiki/papers/wang-2026-prorag.md
+- 创建论文页：wiki/papers/tan-2026-ctrl-rag.md
+- 创建论文页：wiki/papers/he-2026-urlvr-scale.md [draft]
+- 创建概念页：wiki/concepts/information-gain.md（信息增益）
+- 创建概念页：wiki/concepts/mcts.md（蒙特卡洛树搜索）
+- 创建概念页：wiki/concepts/contrastive-likelihood.md（对比似然）
+- 更新概念页：wiki/concepts/process-reward-model.md（添加 MCNIG/ProRAG 的 PRM 训练方法 + 对比表格）
+- 大幅更新综合分析：wiki/synthesis/urlvr-landscape.md（从4篇扩展到8篇，添加 RAG 分类维度、Sharpening 理论、PRM 训练数据生成方法对比）
+- 更新 index.md 索引（添加新论文、新概念页、RAG+RL 分类）

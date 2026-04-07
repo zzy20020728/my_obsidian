@@ -3,8 +3,8 @@ title: Process Reward Model (PRM, 过程奖励模型)
 type: concept
 tags: [RL, reward-model, step-level, verification, URLVR]
 created: 2026-04-07
-updated: 2026-04-07
-sources: [wiki/papers/rahman-2025-spark.md, wiki/papers/ghimire-2026-prism.md]
+updated: 2026-04-08
+sources: [wiki/papers/rahman-2025-spark.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/royer-2026-mcnig.md, wiki/papers/wang-2026-prorag.md]
 status: active
 ---
 
@@ -61,10 +61,38 @@ $$R_{PRM}(q, o) = \frac{1}{S}\sum_{s=1}^{S} R_{step}(q, o, s)$$
 2. 在合成数据上 fine-tune → 得到 PRM
 3. 冻结 PRM → 做 RL reward（stationary signal）
 
+### MCNIG 方式（信息论，无需重新采样）
+1. 对每步推理，计算模型对 correct/incorrect 答案集合的 log-probability 差异变化
+2. MCNIG_i = NetInfo_i - NetInfo_0，衡量该步对"正确答案优势"的贡献
+3. Label = MCNIG > threshold → 训练 PRM
+4. **核心优势**: O(N) 复杂度（KV-caching），比 MathShepherd O(N²) 和 OmegaPRM O(NlogN) 高效 7 倍+
+5. 详见 [[wiki/papers/royer-2026-mcnig|MCNIG (Royer et al., 2026)]]
+
+### ProRAG 方式（MCTS + Contrastive Labeling）
+1. 用 [[mcts|MCTS]] 从 SFT policy 出发探索多样推理路径
+2. PUCT selection 平衡 exploration 和 exploitation，Q-value backpropagation with decay
+3. 对 MCTS 树中 sibling nodes 用 GPT-4o 做 contrastive labeling（96% 与人工一致）
+4. 生成 (good step, bad step) 对比对 → 训练 PRM
+5. **特点**: 数据质量最高，但需要 MCTS 搜索和 GPT-4o 标注，计算成本较大
+6. 详见 [[wiki/papers/wang-2026-prorag|ProRAG (Wang et al., 2026)]]
+
 ### PRISM 方式（混合信号）
 - 用现成的 GenPRM-7B（已有的 generative PRM）
 - 结合 self-certainty：$\hat{A} = \gamma \cdot \hat{A}_{SC} + \hat{A}_{PRM}$
 - PRM 防止 overconfidence，self-certainty 防止格式崩溃
+
+## PRM 训练数据生成方法对比
+
+| 方法 | 策略 | 复杂度 | 需要 GT | 数据质量 | 论文 |
+|------|------|--------|--------|---------|------|
+| 人工标注 | 专家逐步标注 | — | 是 | 最高 | PRM800K |
+| MathShepherd | 每步重新采样 N 次 | O(N²) | 是 | 中等 | Wang 2024 |
+| OmegaPRM | MCTS 探索 | O(NlogN) | 是 | 较高 | Luo 2024 |
+| **SPARK** | Step-level self-consistency | O(M×N) | 否 | 较高 | [[wiki/papers/rahman-2025-spark\|Rahman 2025]] |
+| **MCNIG** | 信息论（log-prob 对比） | O(N) | 是* | 较高 | [[wiki/papers/royer-2026-mcnig\|Royer 2026]] |
+| **ProRAG MCTS** | MCTS + GPT-4o labeling | O(NlogN) | 是 | 高（96%） | [[wiki/papers/wang-2026-prorag\|Wang 2026]] |
+
+*MCNIG 需要 ground-truth 来分 correct/incorrect 答案集合，但不需要 step-level 标注。
 
 ## PRM 的已知问题
 
@@ -94,6 +122,8 @@ $$R_{PRM}(q, o) = \frac{1}{S}\sum_{s=1}^{S} R_{step}(q, o, s)$$
 - Lightman et al., 2023 — "Let's Verify Step by Step"（PRM800K，PRM 经典论文）
 - [[wiki/papers/rahman-2025-spark|SPARK (Rahman et al., 2025)]] — 无标注训练 PRM，PRM-CoT 超越 GT RLVR
 - [[wiki/papers/ghimire-2026-prism|PRISM (Ghimire et al., 2026)]] — 发现纯 PRM 的格式崩溃问题，提出混合方案
+- [[wiki/papers/royer-2026-mcnig|MCNIG (Royer et al., 2026)]] — 信息论自动生成 PRM 训练数据，O(N) 复杂度
+- [[wiki/papers/wang-2026-prorag|ProRAG (Wang et al., 2026)]] — MCTS-based PRM 训练，RAG 任务上的 process supervision
 - Wang et al., 2024 — "Math-Shepherd"（用自动标注的 step-level 数据训练 PRM）
 
 ## 面试常问点
