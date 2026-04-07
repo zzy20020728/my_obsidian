@@ -1,0 +1,15 @@
+# Obsidian 工作区
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 大文件（论文 PDF 太大的话用 Git LFS 或不追踪）
+# raw/papers/*.pdf
+
+# 临时文件
+*.tmp
+*.bak
