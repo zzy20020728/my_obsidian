@@ -4,7 +4,7 @@ type: synthesis
 tags: [semantic-entropy, step-level, URLVR, SPAE, SEP, TTRL, process-reward, research-proposal, reward-hacking]
 created: 2026-04-08
 updated: 2026-04-08
-sources: [wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2025-empo.md, wiki/papers/zhang-2026-grad2reward.md, wiki/papers/royer-2026-mcnig.md, wiki/papers/ghimire-2026-prism.md, wiki/concepts/semantic-entropy.md, wiki/concepts/process-reward-model.md, wiki/concepts/reward-hacking.md]
+sources: [wiki/papers/zuo-2025-ttrl.md, wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2025-empo.md, wiki/papers/zhang-2026-grad2reward.md, wiki/papers/royer-2026-mcnig.md, wiki/papers/ghimire-2026-prism.md, wiki/concepts/semantic-entropy.md, wiki/concepts/process-reward-model.md, wiki/concepts/reward-hacking.md]
 status: active
 ---
 

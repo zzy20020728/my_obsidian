@@ -4,7 +4,7 @@ type: synthesis
 tags: [URLVR, 综述, 对比分析, reward-signal, PRM, self-consistency, RAG, sharpening]
 created: 2026-04-07
 updated: 2026-04-08
-sources: [wiki/papers/zhang-2025-empo.md, wiki/papers/rahman-2025-spark.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/wu-2026-self-judge.md, wiki/papers/royer-2026-mcnig.md, wiki/papers/wang-2026-prorag.md, wiki/papers/tan-2026-ctrl-rag.md, wiki/papers/he-2026-urlvr-scale.md]
+sources: [wiki/papers/zuo-2025-ttrl.md, wiki/papers/zhang-2025-empo.md, wiki/papers/rahman-2025-spark.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/wu-2026-self-judge.md, wiki/papers/royer-2026-mcnig.md, wiki/papers/wang-2026-prorag.md, wiki/papers/tan-2026-ctrl-rag.md, wiki/papers/he-2026-urlvr-scale.md]
 status: active
 ---
 
@@ -16,10 +16,11 @@ status: active
 
 **核心挑战**：标准 RLVR（如 DeepSeek-R1）依赖 ground-truth 做 rule-based verification，但大量实际场景（开放域推理、多模态推理、RAG、复杂任务）无法获取标注。如何在没有标注的情况下构建可靠的训练信号？
 
-## 八篇核心论文速览
+## 九篇核心论文速览
 
 | 论文 | 机构 | 核心方法 | Reward 来源 | 任务 | 年份 |
 |------|------|----------|-------------|------|------|
+| [[wiki/papers/zuo-2025-ttrl\|TTRL]] | Tsinghua + Shanghai AI Lab | Majority voting pseudo-reward + online RL | 纯内部（cross-sample consensus） | 数学/通用推理 | 2025 |
 | [[wiki/papers/zhang-2025-empo\|EMPO]] | Tianjin U + Tencent | 语义熵最小化 | 纯内部（semantic entropy） | 数学/通用推理 | 2025 |
 | [[wiki/papers/rahman-2025-spark\|SPARK]] | Amazon + UCLA | 三阶段 PRM 训练 | 外部（trained PRM） | 数学推理 | 2025 |
 | [[wiki/papers/ghimire-2026-prism\|PRISM]] | ASU + AWS | PRM + self-certainty 混合 | 混合（PRM + 内部信号） | 数学推理 | 2026 |
@@ -37,16 +38,16 @@ status: active
 
 ```
 纯内部信号 ─────────── 混合信号 ──────────── 纯外部信号
-    │                  │    │    │               │      │
-   EMPO             PRISM  S-J  CTRL-RAG       SPARK  MCNIG
-(sem entropy)    (PRM+SC)(SC+J)(CLR+acc)    (PRM)  (PRM)
-                       ProRAG
-                    (PRM+F1)
+    │      │           │    │    │               │      │
+  TTRL    EMPO       PRISM  S-J  CTRL-RAG       SPARK  MCNIG
+(maj vote)(sem ent) (PRM+SC)(SC+J)(CLR+acc)    (PRM)  (PRM)
+                        ProRAG
+                     (PRM+F1)
 ```
 
 | 类型 | 代表 | 优势 | 劣势 |
 |------|------|------|------|
-| **纯内部** | EMPO | 无需任何外部模型，完全自主 | 长期训练 [[reward-hacking\|reward hack]]（PRISM 证明）；本质是 sharpening（He et al. 证明） |
+| **纯内部** | TTRL, EMPO | 无需任何外部模型，完全自主 | TTRL: 无 step-level credit；EMPO: 长期训练 [[reward-hacking\|reward hack]]（PRISM 证明）；本质是 sharpening（He et al. 证明） |
 | **混合** | PRISM, Self-Judge, ProRAG, CTRL-RAG | 互补信号，更稳健 | 需要调节多信号权重（γ, β 等超参） |
 | **纯外部** | SPARK, MCNIG | 最稳定（stationary reward） | 需要额外训练 PRM，计算成本高 |
 
@@ -54,7 +55,7 @@ status: active
 
 | 粒度 | 论文 | 描述 |
 |------|------|------|
-| **答案级 (Outcome-level)** | EMPO, Self-Judge, CTRL-RAG | 只评估最终答案的质量/一致性/忠实度 |
+| **答案级 (Outcome-level)** | TTRL, EMPO, Self-Judge, CTRL-RAG | 只评估最终答案的质量/一致性/忠实度 |
 | **步骤级 (Step-level)** | SPARK, PRISM, MCNIG, ProRAG | 评估每个推理步骤的正确性 |
 | **双粒度 (Dual-granularity)** | ProRAG | 同时使用 outcome + step-level 信号 |
 
@@ -71,8 +72,8 @@ status: active
 
 | 任务类型 | 论文 | Base Model |
 |----------|------|------------|
-| **数学推理** | EMPO, SPARK, PRISM, MCNIG | Qwen2.5-Math-7B, Qwen2.5-3B/7B, Ministral-8B/14B |
-| **通用推理** | EMPO | Qwen2.5-7B (MMLU-Pro, GPQA) |
+| **数学推理** | TTRL, EMPO, SPARK, PRISM, MCNIG | Qwen2.5-Math-7B, Qwen2.5-3B/7B/32B, Ministral-8B/14B, LLaMA-3.x |
+| **通用推理** | TTRL, EMPO | Qwen2.5-7B (MMLU-Pro, GPQA) |
 | **多模态视觉推理** | Self-Judge | Qwen2.5-VL-7B (几何、图表) |
 | **代码 & SQL** | MCNIG | Ministral-8B/14B |
 | **Multi-hop QA (RAG)** | ProRAG, CTRL-RAG | Qwen3-8B, Qwen3-30B-A3B |

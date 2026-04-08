@@ -15,6 +15,7 @@ updated: 2026-04-08
 - [[wiki/papers/schulman-2017-ppo|PPO 原论文 (Schulman et al., 2017)]] — 策略梯度经典，RLHF 核心算法
 
 ### URLVR（无监督/无参考 RL 推理）
+- [[wiki/papers/zuo-2025-ttrl|TTRL (Zuo & Zhang et al., 2025)]] — ⭐ Majority voting 做 pseudo-reward，test-time self-evolution，Qwen2.5-Math-7B AIME +211%
 - [[wiki/papers/zhang-2025-empo|EMPO (Zhang et al., 2025)]] — 语义熵最小化，完全无监督，仅需 {q} 不需要 {a}
 - [[wiki/papers/rahman-2025-spark|SPARK (Rahman et al., 2025)]] — 三阶段 PRM 训练，step-level reward 超越 GT RLVR
 - [[wiki/papers/ghimire-2026-prism|PRISM (Ghimire et al., 2026)]] — 系统性证明纯内部信号不可靠，PRM + self-certainty 混合方案

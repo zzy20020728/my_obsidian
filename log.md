@@ -97,3 +97,14 @@ type: log
 - 配置：创建 `opencode.json`（项目级 MCP 配置）
 - 论文存储路径：`C:\Users\lenovo\Desktop\my_obsidian\raw\papers`
 - **重启 OpenCode 后生效**，届时可用 search_papers / download_paper / read_paper 等工具
+
+## [2026-04-08] git | 推送上一 session 所有更改
+- commit `2e5598f`: SPAE + Grad2Reward 论文页、step-level-se-proposal、opencode.json、Obsidian 插件配置
+- 更新 .gitignore 排除 PDF 文件（raw/papers/*.pdf）
+- push 到 origin/main
+
+## [2026-04-08] ingest | TTRL 论文深度摄入
+- 论文：TTRL: Test-Time Reinforcement Learning (Zuo & Zhang et al., 2025, arXiv:2504.16084)
+- 创建 wiki/papers/zuo-2025-ttrl.md（完整方法/Lucky Hit 理论/实验表格/失败分析/面试 Q&A）
+- TTRL 是双层无监督架构（TTRL + SPAE-SE）的 Layer 1 (Outcome) 核心组件
+- 更新 index.md 索引
