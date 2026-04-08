@@ -2,6 +2,8 @@
 title: Wiki 索引
 type: index
 updated: 2026-04-08
+
+---
 ---
 
 # Wiki 索引
@@ -19,6 +21,12 @@ updated: 2026-04-08
 - [[wiki/papers/wu-2026-self-judge|Self-Judge (Wu et al., 2026)]] — Actor-Judge 多模态无监督自进化，distributional reward modeling
 - [[wiki/papers/royer-2026-mcnig|MCNIG (Royer et al., 2026)]] — 信息论自动生成 PRM 训练数据，O(N) 复杂度，跨任务泛化
 - [[wiki/papers/he-2026-urlvr-scale|How Far Can URLVR Scale? (He et al., 2026)]] — ⭐ICLR 2026，URLVR 统一理论框架，sharpening mechanism，MCS 概念
+
+### Step-Level Credit Assignment / Efficient Reasoning
+- [[wiki/papers/wu-2026-spae|SPAE (Wu et al., 2026)]] — Training-free probing 提取 Step Potential，step-level advantage estimation，解决 Over-Checking 和 R2W 失败
+
+### Open-ended RL / Dense Reward
+- [[wiki/papers/zhang-2026-grad2reward|Grad2Reward (Zhang et al., 2026)]] — 梯度 attribution 提取 dense token-level reward，self-judging，ICML 2026
 
 ### RAG + RL
 - [[wiki/papers/wang-2026-prorag|ProRAG (Wang et al., 2026)]] — 四阶段 RAG RL，MCTS-based PRM，dual-granularity advantage
@@ -64,6 +72,7 @@ updated: 2026-04-08
 > 跨论文对比与领域综述
 
 - [[wiki/synthesis/urlvr-landscape|URLVR 领域综述]] — 八篇论文多维分类对比，信号来源/打分粒度/Reward 模型/任务类型/Sharpening 理论
+- [[wiki/synthesis/step-level-se-proposal|Step-Level SE 研究方案]] — 无监督步骤级评分，SPAE + Semantic Entropy 结合方案，SEP 探针加速
 
 ## 学习计划 (plans/)
 > 秋招备战计划与进度

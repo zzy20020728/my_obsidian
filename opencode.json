@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "arxiv": {
+      "type": "local",
+      "command": ["uv", "tool", "run", "arxiv-mcp-server", "--storage-path", "C:\\Users\\lenovo\\Desktop\\my_obsidian\\raw\\papers"],
+      "enabled": true
+    }
+  }
+}
