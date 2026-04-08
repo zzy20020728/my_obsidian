@@ -129,3 +129,17 @@ type: log
 - 更新 wiki/synthesis/urlvr-landscape.md
 - 新增 Theorem 1 数学细节、三种 Failure Modes、MCS 实用指标、External Reward 路径
 - 更新核心发现章节：纳入 He et al. 的定量证据
+
+## [2026-04-08] ingest | CoVo 论文深度摄入
+- 论文：CoVo (Zhang et al., 2025, arXiv:2506.08745)
+- 核心内容：Consistency + Volatility，用中间状态是否持续支持最终答案来构造无监督 reward
+- 创建论文页：wiki/papers/zhang-2025-covo.md
+- 更新 URLVR 综述页：纳入 CoVo，URLVR 核心论文由 9 篇扩展到 10 篇
+- 更新 index.md 索引
+
+## [2026-04-08] synthesis | Step-Level SE 方案重构为 SPC
+- 重写 wiki/synthesis/step-level-se-proposal.md
+- 放弃旧的 SPAE-SE / Semantic Certainty 主叙事，改为 **Semantic Process Consistency (SPC)**
+- 新方案核心：在每个 step boundary 复用 SPAE probing，检查短续写导向的答案是否与轨迹最终答案语义一致
+- 吸收 CoVo 的 consistency / volatility insight，但从 token likelihood judgment 升级为 semantic rollout behavior
+- 明确回答旧方案的核心缺口：SPC 的目标是缓解 TTRL 的“一致地错”问题，而不只是替换一个 certainty 指标

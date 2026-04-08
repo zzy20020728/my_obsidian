@@ -1,10 +1,10 @@
 ---
 title: URLVR 领域综述：无监督/无参考强化学习推理
 type: synthesis
-tags: [URLVR, 综述, 对比分析, reward-signal, PRM, self-consistency, RAG, sharpening, MCS, failure-modes, external-reward]
+tags: [URLVR, 综述, 对比分析, reward-signal, PRM, self-consistency, RAG, sharpening, MCS, failure-modes, external-reward, CoVo, consistency, volatility]
 created: 2026-04-07
 updated: 2026-04-08
-sources: [wiki/papers/zuo-2025-ttrl.md, wiki/papers/zhang-2025-empo.md, wiki/papers/rahman-2025-spark.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/wu-2026-self-judge.md, wiki/papers/royer-2026-mcnig.md, wiki/papers/wang-2026-prorag.md, wiki/papers/tan-2026-ctrl-rag.md, wiki/papers/he-2026-urlvr-scale.md, wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2026-grad2reward.md]
+sources: [wiki/papers/zuo-2025-ttrl.md, wiki/papers/zhang-2025-empo.md, wiki/papers/zhang-2025-covo.md, wiki/papers/rahman-2025-spark.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/wu-2026-self-judge.md, wiki/papers/royer-2026-mcnig.md, wiki/papers/wang-2026-prorag.md, wiki/papers/tan-2026-ctrl-rag.md, wiki/papers/he-2026-urlvr-scale.md, wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2026-grad2reward.md]
 status: active
 ---
 
@@ -16,12 +16,13 @@ status: active
 
 **核心挑战**：标准 RLVR（如 DeepSeek-R1）依赖 ground-truth 做 rule-based verification，但大量实际场景（开放域推理、多模态推理、RAG、复杂任务）无法获取标注。如何在没有标注的情况下构建可靠的训练信号？
 
-## 九篇核心论文速览
+## 十篇核心论文速览
 
 | 论文 | 机构 | 核心方法 | Reward 来源 | 任务 | 年份 |
 |------|------|----------|-------------|------|------|
 | [[wiki/papers/zuo-2025-ttrl\|TTRL]] | Tsinghua + Shanghai AI Lab | Majority voting pseudo-reward + online RL | 纯内部（cross-sample consensus） | 数学/通用推理 | 2025 |
 | [[wiki/papers/zhang-2025-empo\|EMPO]] | Tianjin U + Tencent | 语义熵最小化 | 纯内部（semantic entropy） | 数学/通用推理 | 2025 |
+| [[wiki/papers/zhang-2025-covo\|CoVo]] | Zhejiang U + Alibaba + NTU | Consistency + Volatility reward | 纯内部（process-aware likelihood consistency） | 数学/通用推理 | 2025 |
 | [[wiki/papers/rahman-2025-spark\|SPARK]] | Amazon + UCLA | 三阶段 PRM 训练 | 外部（trained PRM） | 数学推理 | 2025 |
 | [[wiki/papers/ghimire-2026-prism\|PRISM]] | ASU + AWS | PRM + self-certainty 混合 | 混合（PRM + 内部信号） | 数学推理 | 2026 |
 | [[wiki/papers/wu-2026-self-judge\|Self-Judge]] | OPPO + Tsinghua | Actor-Judge + distributional | 混合（SC + Judge modulation） | 多模态推理 | 2026 |
@@ -37,17 +38,17 @@ status: active
 ### 维度一：按 Reward 信号来源
 
 ```
-纯内部信号 ─────────── 混合信号 ──────────── 纯外部信号
-    │      │           │    │    │               │      │
-  TTRL    EMPO       PRISM  S-J  CTRL-RAG       SPARK  MCNIG
-(maj vote)(sem ent) (PRM+SC)(SC+J)(CLR+acc)    (PRM)  (PRM)
-                        ProRAG
-                     (PRM+F1)
+ 纯内部信号 ─────────────── 混合信号 ──────────── 纯外部信号
+    │      │      │         │    │    │               │      │
+  TTRL    EMPO   CoVo     PRISM  S-J  CTRL-RAG       SPARK  MCNIG
+(maj vote)(sem ent)(Con+Vol)(PRM+SC)(SC+J)(CLR+acc)  (PRM)  (PRM)
+                            ProRAG
+                         (PRM+F1)
 ```
 
 | 类型 | 代表 | 优势 | 劣势 |
 |------|------|------|------|
-| **纯内部** | TTRL, EMPO | 无需任何外部模型，完全自主 | TTRL: 无 step-level credit；EMPO: 长期训练 [[reward-hacking\|reward hack]]（PRISM 证明）；本质是 sharpening（He et al. 证明） |
+| **纯内部** | TTRL, EMPO, CoVo | 无需任何外部模型，完全自主 | TTRL: 无 step-level credit；EMPO: 长期训练 [[reward-hacking\|reward hack]]；CoVo: 更强的过程信号但底层仍是 likelihood consistency；本质都受 sharpening 风险约束 |
 | **混合** | PRISM, Self-Judge, ProRAG, CTRL-RAG | 互补信号，更稳健 | 需要调节多信号权重（γ, β 等超参） |
 | **纯外部** | SPARK, MCNIG | 最稳定（stationary reward） | 需要额外训练 PRM，计算成本高 |
 
@@ -56,8 +57,9 @@ status: active
 | 粒度 | 论文 | 描述 |
 |------|------|------|
 | **答案级 (Outcome-level)** | TTRL, EMPO, Self-Judge, CTRL-RAG | 只评估最终答案的质量/一致性/忠实度 |
-| **步骤级 (Step-level)** | SPARK, PRISM, MCNIG, ProRAG | 评估每个推理步骤的正确性 |
-| **双粒度 (Dual-granularity)** | ProRAG | 同时使用 outcome + step-level 信号 |
+| **轨迹级过程感知 (Trajectory-level)** | CoVo | 看中间状态是否持续支持最终答案，但 reward 仍落在整条轨迹上 |
+| **步骤级 (Step-level)** | SPARK, PRISM, MCNIG | 评估每个推理步骤的正确性 |
+| **双粒度 (Dual-granularity)** | ProRAG, [[wiki/synthesis/step-level-se-proposal\|SPC 提案]] | 同时使用 outcome + step-level 信号 |
 
 ### 维度三：按 PRM 训练数据生成方式
 
@@ -72,8 +74,8 @@ status: active
 
 | 任务类型 | 论文 | Base Model |
 |----------|------|------------|
-| **数学推理** | TTRL, EMPO, SPARK, PRISM, MCNIG | Qwen2.5-Math-7B, Qwen2.5-3B/7B/32B, Ministral-8B/14B, LLaMA-3.x |
-| **通用推理** | TTRL, EMPO | Qwen2.5-7B (MMLU-Pro, GPQA) |
+| **数学推理** | TTRL, EMPO, CoVo, SPARK, PRISM, MCNIG | Qwen2.5-Math-7B, Qwen2.5-3B/7B/32B, Ministral-8B/14B, LLaMA-3.x |
+| **通用推理** | TTRL, EMPO, CoVo | Qwen2.5-7B (MMLU-Pro, GPQA) |
 | **多模态视觉推理** | Self-Judge | Qwen2.5-VL-7B (几何、图表) |
 | **代码 & SQL** | MCNIG | Ministral-8B/14B |
 | **Multi-hop QA (RAG)** | ProRAG, CTRL-RAG | Qwen3-8B, Qwen3-30B-A3B |
@@ -86,6 +88,7 @@ status: active
 | 论文 | 优化框架 | Advantage 计算 |
 |------|----------|---------------|
 | EMPO | 标准 GRPO | 语义聚类 reward 的组内 z-score |
+| CoVo | Reinforce++ | Consistency/Volatility 聚合 reward + curiosity bonus |
 | SPARK | 标准 GRPO | PRM reward 的组内 z-score |
 | PRISM | 标准 GRPO | γ·Â_SC + Â_PRM |
 | Self-Judge | 改进 GRPO | Energy-based log-sum-exp baseline |
@@ -182,6 +185,7 @@ Self-Verification 实验（Countdown 任务）：
 |------|----------------|
 | TTRL | Majority voting = ensemble-based intrinsic → 小数据 TTT 安全，大数据最终 collapse |
 | EMPO | Semantic entropy minimization = sharpening；entropy thresholding 是过滤 misaligned 样本的启发式 |
+| CoVo | Consistency/Volatility 提供更强的过程信息，但 distance 仍由 likelihood 定义，因此仍可能属于 certainty-based / sharpening 范式 |
 | PRISM | Rise-then-fall = sharpening 的必然结果；PRM 提供非 sharpening 的 external 信号补救 |
 | SPARK | Trained PRM = external reward，不受 sharpening 限制，所以最稳定 |
 | Self-Judge | Frozen Judge = external 校准，SC 频率 = intrinsic sharpening；混合部分缓解 |
@@ -200,6 +204,7 @@ Self-Verification 实验（Countdown 任务）：
 | Base | ~37% | ~60% | ~11% | ~25% | — |
 | GT RLVR | ~73% | ~88% | ~29% | ~44% | baseline |
 | **EMPO** | 70.4% | 88.7% | 35.5% | ~48% | **~97%** |
+| **CoVo** | 在 7 个 benchmark 上稳定优于 TTRL/EMPO | — | — | 接近/超过 supervised RL | 强过程感知内在奖励 |
 | **SPARK (PRM-CoT)** | 74.0% | 87.1% | 32.4% | ~47% | **>100%** |
 | **PRISM** | 80.8% | 92.1% | 38.6% | ~53%* | **>100%** |
 
@@ -226,6 +231,7 @@ Self-Verification 实验（Countdown 任务）：
 
 ### 关键发现
 - 最好的 URLVR 方法已经**达到甚至超过 ground-truth RLVR** 的效果（数学推理）
+- CoVo 说明即使不训练 PRM，只要 reward 里显式建模“过程是否支持答案”，也能显著超过纯 outcome-level intrinsic 方法
 - RAG 任务上，process supervision（ProRAG）和 faithfulness reward（CTRL-RAG）都大幅提升基线
 - MCNIG 的 PRM 在 best-of-K 上超过所有基线，且计算成本最低
 
@@ -237,6 +243,8 @@ Self-Verification 实验（Countdown 任务）：
 **共识度**: ⭐⭐⭐⭐⭐（所有论文都涉及）
 
 PRISM 系统性证明，SPARK 间接验证（self-consistency collapse），EMPO 通过 entropy thresholding 部分缓解。He et al. (ICLR 2026) 从理论上**数学证明**（Theorem 1: 几何收敛到确定性策略）+ **穷举实验验证**（5 种方法 × 4 超参网格搜索，~1000步内必 collapse）。这是 fundamental limitation，不是 engineering problem。
+
+CoVo 是这个背景下一个重要进展：它表明纯内部信号并非只能做答案级 majority 或 entropy，也可以显式利用中间状态与最终答案的一致性/波动性；但由于其底层仍依赖 likelihood，是否能从根本上摆脱 sharpening，仍需更长期验证。
 
 ### 2. Stationary Reward 优于 Non-stationary
 **共识度**: ⭐⭐⭐⭐⭐
@@ -280,6 +288,9 @@ Self-Consistency (Wang et al., 2022)
     ├── 语义聚类版本 ──→ EMPO (Semantic Entropy Minimization)
     │                      └── 短期有效，本质是 sharpening (He et al.)
     │
+    ├── 过程一致性版本 ──→ CoVo (Consistency + Volatility)
+    │                      └── 从最终答案一致推进到中间状态支持度
+    │
     ├── 生成PRM训练数据 ──→ SPARK (Step-level PRM, 超越GT)
     │                      └── 最稳定的方案
     │
@@ -314,6 +325,7 @@ RAG + RL
 | 实现方式 | 论文 | 描述 |
 |----------|------|------|
 | 语义聚类频率 | EMPO | 多次采样 → 语义聚类 → 频率做 reward |
+| Likelihood consistency + volatility | CoVo | 中间状态到候选答案的 distance matrix → consistency/volatility 聚合 |
 | Trained PRM (self-consistency) | SPARK | 合成数据训练的 generative PRM |
 | Trained PRM (信息论) | MCNIG | [[information-gain\|MCNIG]] 自动标注训练的 PRM |
 | Trained PRM (MCTS) | ProRAG | [[mcts\|MCTS]] 探索 + GPT-4o 标注训练的 PRM |
@@ -351,6 +363,8 @@ ProRAG 和 CTRL-RAG 开辟了 RAG RL 的新方向。能否将 ProRAG 的 step-le
 
 ### 5. Sharpening 的根本突破
 He et al. 证明 intrinsic rewards 受限于 confidence-correctness alignment（Theorem 1）。如何突破？两条可行路径：(1) **Computational asymmetries / Generation-Verification Asymmetry**——验证比生成容易的任务可以构建 external reward（LADDER/RLSR/Absolute Zero/AlphaProof）；(2) **信息论方法**（MCNIG）利用 log-prob 变化构建信号。He et al. 的 self-verification 实验已初步验证 external reward 在 Countdown 任务上的有效性。
+
+CoVo 和当前的 [[wiki/synthesis/step-level-se-proposal|SPC 提案]] 代表另一条值得探索的路线：不直接跳到 external reward，而是先把 internal reward 从“最终答案是否一致”升级为“过程是否真的支持该答案”。其中 CoVo 仍停留在 likelihood 空间，SPC 则进一步走向 semantic rollout 空间。
 
 ### 6. MCNIG 集成到 RL Pipeline
 MCNIG 目前仅做 best-of-K reranking。如果用 MCNIG 训练的 PRM 做 RL reward（类似 SPARK 的 Stage 3），效果会如何？

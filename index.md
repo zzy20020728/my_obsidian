@@ -17,6 +17,7 @@ updated: 2026-04-08
 ### URLVR（无监督/无参考 RL 推理）
 - [[wiki/papers/zuo-2025-ttrl|TTRL (Zuo & Zhang et al., 2025)]] — ⭐ Majority voting 做 pseudo-reward，test-time self-evolution，Qwen2.5-Math-7B AIME +211%
 - [[wiki/papers/zhang-2025-empo|EMPO (Zhang et al., 2025)]] — 语义熵最小化，完全无监督，仅需 {q} 不需要 {a}
+- [[wiki/papers/zhang-2025-covo|CoVo (Zhang et al., 2025)]] — Consistency + Volatility，显式建模中间状态是否持续支持最终答案
 - [[wiki/papers/rahman-2025-spark|SPARK (Rahman et al., 2025)]] — 三阶段 PRM 训练，step-level reward 超越 GT RLVR
 - [[wiki/papers/ghimire-2026-prism|PRISM (Ghimire et al., 2026)]] — 系统性证明纯内部信号不可靠，PRM + self-certainty 混合方案
 - [[wiki/papers/wu-2026-self-judge|Self-Judge (Wu et al., 2026)]] — Actor-Judge 多模态无监督自进化，distributional reward modeling
@@ -72,8 +73,8 @@ updated: 2026-04-08
 ## 综合分析 (wiki/synthesis/)
 > 跨论文对比与领域综述
 
-- [[wiki/synthesis/urlvr-landscape|URLVR 领域综述]] — 八篇论文多维分类对比，信号来源/打分粒度/Reward 模型/任务类型/Sharpening 理论
-- [[wiki/synthesis/step-level-se-proposal|Step-Level SE 研究方案]] — 无监督步骤级评分，SPAE + Semantic Entropy 结合方案，SEP 探针加速
+- [[wiki/synthesis/urlvr-landscape|URLVR 领域综述]] — 十篇核心论文多维分类对比，信号来源/打分粒度/Reward 模型/任务类型/Sharpening 理论
+- [[wiki/synthesis/step-level-se-proposal|Semantic Process Consistency 研究方案]] — 从 SPAE-SE 重构为 SPC：用 step-level semantic rollout consistency 纠正 TTRL 的 outcome-only 信号
 
 ## 学习计划 (plans/)
 > 秋招备战计划与进度
