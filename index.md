@@ -75,6 +75,7 @@ updated: 2026-04-08
 
 - [[wiki/synthesis/urlvr-landscape|URLVR 领域综述]] — 十篇核心论文多维分类对比，信号来源/打分粒度/Reward 模型/任务类型/Sharpening 理论
 - [[wiki/synthesis/step-level-se-proposal|Semantic Process Consistency 研究方案]] — 从 SPAE-SE 重构为 SPC：用 step-level semantic rollout consistency 纠正 TTRL 的 outcome-only 信号
+- [[wiki/synthesis/co-evolving-verifier-proposal|Co-Evolving Verifier 研究方案]] — SPC 的第二分支：让 PRM 跟着 RL 训练一起进化，三层自举架构（TTRL anchor → SPC signal → lightweight PRM）
 
 ## 学习计划 (plans/)
 > 秋招备战计划与进度

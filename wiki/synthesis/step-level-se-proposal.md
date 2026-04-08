@@ -236,6 +236,111 @@ $$
 
 也就是说，**SPC 不能从根本上消除 wrong-majority，但它能显著减少“过程不稳却被当作正样本”的奖励泄露。**
 
+## 相对 TTRL 的核心 Story
+
+### TTRL 已经解决了什么
+
+[[wiki/papers/zuo-2025-ttrl|TTRL]] 最大的贡献，是在完全无标注条件下构造出可用的 outcome-level reward。它依赖 majority voting 的 Lucky Hit 机制：即使 pseudo-label 不完全正确，只要错误预测足够分散，大多数错误轨迹仍会收到正确的负反馈，因此早期训练可以非常有效。
+
+这解释了为什么 TTRL 在很多 benchmark 上提升巨大，也解释了为什么它是当前双层架构里不可替代的 **Layer 1 outcome anchor**。
+
+### 但 TTRL 没有解决什么
+
+TTRL 的 reward 是答案级的 binary reward，它隐含地把整条推理链视为一个不可分的整体。这会带来三个直接问题：
+
+1. **没有关键步骤识别能力**：一条 100-step 轨迹中，第 23 步的真正突破和第 87 步的冗余检查共享同一个 reward。
+2. **错误 credit assignment**：只要最终答案跟 pseudo-label 一致，整条链都会被正向更新，即使前面大部分步骤实际上是不稳定甚至误导性的。
+3. **reward accuracy 退化时缺少保险丝**：当训练进入 sharpening 区间后，majority answer 会越来越集中，错误 majority 也会被不断放大。此时 TTRL 只能继续强化“最终一致”的轨迹，却无法区分其中哪些轨迹的过程本身已经出现崩坏征兆。
+
+这正是 [[wiki/papers/he-2026-urlvr-scale|He et al. 2026]] 所说的核心问题：intrinsic URLVR 在大规模训练下，本质上更像 **amplification**，而不是 **correction**。
+
+### 我们方案相对 TTRL 的本质增量
+
+SPC 方案的关键，不是把 TTRL 推翻，而是在 TTRL 之上新增一个 **process-side correction layer**。
+
+TTRL 回答的问题是：
+
+> “这条轨迹的最终答案是否站在当前 group majority 这一边？”
+
+SPC 回答的问题是：
+
+> “这条轨迹在中间步骤上，是否真的逐步建立起了对该最终答案的稳定支持？”
+
+因此相对 TTRL，SPC 额外提供了三种新能力：
+
+1. **关键步骤定位**：哪些 step 真正让轨迹从不稳定转向稳定。
+2. **伪正样本过滤**：最终答案虽然跟 pseudo-label 一致，但过程内部 rollout 仍然分裂的轨迹，应降权。
+3. **回退检测**：轨迹如果从高一致性重新掉回低一致性，说明模型在 checking 阶段把本来解对的问题“想坏了”，应显式惩罚。
+
+### 关键步骤分析为什么重要
+
+TTRL 最大的问题，不是它完全错，而是它**太粗**。它只能说“这条链最终像不像好链”，却说不出“好链好在哪一步，坏链坏在哪一步”。
+
+而在数学推理里，真正决定泛化能力的，往往不是最终答案 token，而是那些关键的中间状态转折：
+
+- 某一步第一次把式子变形成正确方向
+- 某一步第一次锁定了正确中间量
+- 某一步开始后，后续 rollout 几乎都落到同一个答案
+
+这些步骤才是真正应该被强化的地方。
+
+如果没有 step-level 分析，RL 会把大量 credit 平均分配到整条轨迹上，结果就是：
+
+- 关键步骤得不到足够强化
+- 冗余 checking 也被一起奖励
+- 错误但表面一致的长链会被不断放大
+
+这也是为什么 outcome-only 方法更容易在后期进入“reward 还在升，但真实 reward accuracy 已经在掉”的状态。
+
+### SPC 如何帮助减缓 reward accuracy 崩溃
+
+这里要强调：SPC **不是**从理论上彻底打破 He et al. 的 sharpening 结论。它仍然属于 intrinsic 路线，所以不能宣称“完全避免 collapse”。
+
+但 SPC 可以合理主张：它比纯 TTRL 更不容易过早进入 reward accuracy 崩溃，因为它减少了两类最危险的错误更新。
+
+#### 1. 减少对伪正样本的放大
+
+在 TTRL 中，只要轨迹最终答案等于 pseudo-label，就会整体得到正向更新。
+
+但在 SPC 中，如果这条轨迹虽然最终和 pseudo-label 一致，却满足以下特征：
+
+- 早期步骤 rollout 高度分裂
+- 后期步骤仍频繁偏离最终答案
+- consistency 很低、volatility 很高
+
+那么它的 $\Phi_{SPC}$ 会偏低，最终能分到的正向 advantage 就会明显下降。
+
+也就是说，SPC 做的不是“改写 pseudo-label”，而是**降低 pseudo-label 错误时的错误放大强度**。
+
+#### 2. 减少对冗余 checking 的奖励
+
+SPAE 已经指出，很多轨迹在已经解对后仍继续 checking，甚至发生 Right-to-Wrong。纯 TTRL 对这种后段 checking 没有辨别能力，因为最终 reward 只在答案层给一次。
+
+SPC 继承 SPAE 的 saturation penalty 后，可以表达这样一个偏好：
+
+- 在答案已经被稳定支持之后，继续冗余生成不应获得同等 credit
+- 如果后续步骤让 consistency 下降，说明模型把本来稳定的解答重新带入不稳定区，应惩罚
+
+这使 reward 不再平均撒到整条链上，而是更集中地压到“建立正确支持”的关键步骤上。
+
+#### 3. 把 collapse 的早期征兆提前暴露出来
+
+He et al. 用 `Reward Accuracy` 和 `MCS` 观测 collapse，但这些指标本质是 response-level 的。SPC 额外提供了 process-level 的早期预警信号：
+
+- 正样本轨迹的平均 $Con_{SPC}$ 是否下降
+- $Vol_{SPC}$ 是否越来越晚
+- 高 reward 轨迹中，`SPC high -> low` 的回退是否增多
+
+如果这些现象出现，往往意味着模型虽然还在追逐 pseudo-label，但过程内部已经在失稳。这类信号理论上应早于最终 reward accuracy 的全面崩溃。
+
+所以 SPC 对 collapse 的贡献，不一定是“完全阻止”，更现实的表述是：
+
+> 它通过更细粒度的 credit assignment，把错误更新限制在更少的步骤和更少的轨迹上，从而延缓 response-level reward accuracy 的系统性退化。
+
+### 一句话总结这段 Story
+
+> TTRL 解决了“无标注时怎么给结果打分”，但没有解决“结果 reward 应该分配给哪些步骤”。SPC 的核心增量，就是把 reward 从答案级 majority voting 推进到过程级 support analysis：只强化那些真正让轨迹稳定支持最终答案的关键步骤，抑制伪正样本和冗余 checking 的错误更新，从而为 intrinsic URLVR 提供比 TTRL 更细、更稳的 credit assignment。
+
 ## 双层无监督架构
 
 ### Layer 1: TTRL outcome anchor
@@ -408,6 +513,8 @@ $$
 ### 风险 4：仍然属于 intrinsic reward，长期可能被 sharpen
 
 [[wiki/papers/he-2026-urlvr-scale|He et al. 2026]] 的结论仍成立：任何内部信号都要警惕 sharpening。SPC 的价值不在于否认这个结论，而在于提出一个**更接近 process correction 的内部信号**，并验证它是否比 certainty-based signals 更耐用。
+
+> **延伸方向**：为了从根本上缓解 intrinsic signal sharpening，我们设计了 [[wiki/synthesis/co-evolving-verifier-proposal|Co-Evolving Verifier]] 分支方案——用 SPC 标签周期性训练一个轻量级 PRM，日常 RL 中替代 probing，同时被 SPC 周期性校准，形成三层自举架构。详见该文档。
 
 ## Positioning
 

@@ -142,4 +142,35 @@ type: log
 - 放弃旧的 SPAE-SE / Semantic Certainty 主叙事，改为 **Semantic Process Consistency (SPC)**
 - 新方案核心：在每个 step boundary 复用 SPAE probing，检查短续写导向的答案是否与轨迹最终答案语义一致
 - 吸收 CoVo 的 consistency / volatility insight，但从 token likelihood judgment 升级为 semantic rollout behavior
-- 明确回答旧方案的核心缺口：SPC 的目标是缓解 TTRL 的“一致地错”问题，而不只是替换一个 certainty 指标
+- 明确回答旧方案的核心缺口：SPC 的目标是缓解 TTRL 的"一致地错"问题，而不只是替换一个 certainty 指标
+
+## [2026-04-08] analysis | SPC 方案系统性评估
+- 对 SPC 方案做全面优劣分析，识别六大问题（按严重程度排序）：
+  1. Probing 计算开销（中）
+  2. 短续写可能不收敛到明确答案（高）
+  3. 语义等价判断可靠性（中）
+  4. **仍属 intrinsic signal → sharpening（高，fundamental）**
+  5. 没有跨轨迹信息（中）
+  6. Φ_SPC 公式可能 over-parameterized（低）
+- 结论：问题 #4 是唯一 fundamental 限制，其他都是工程问题
+- Story 定位确认："CoVo 看模型怎么想，SPC 看模型怎么做"
+- 该分析直接催生了 Co-Evolving Verifier 分支方向
+
+## [2026-04-08] research | Co-Evolving PRM 文献调研
+- 搜索目标：是否已有工作让 PRM 和 policy 在 RL 训练中同时进化
+- 找到三篇核心相关工作：
+  - **SPARK (Liu et al., 2025/09, arXiv:2509.22624)** — Policy 和 Reward Model 同时训练，有 verifiable reward anchor（非纯 URLVR）
+  - **rePIRL (Wu et al., 2026/02, arXiv:2602.07832)** — Inverse RL 框架交替更新 policy 和 PRM，需要 expert demonstrations
+  - **Sci-CoE (He et al., 2026/02, arXiv:2602.12164)** — 两阶段 co-evolving：sparse supervision → geometric consensus 自迭代，最接近 URLVR 设定
+- **关键理论风险**：纯 URLVR 下 co-evolving 会陷入 mutual sharpening（He et al. Sharpening Theorem 的双重版本）
+- SPARK (Liu et al.) 能成功是因为有 verifiable reward 作为硬锚点
+
+## [2026-04-08] synthesis | Co-Evolving Verifier 研究方案
+- 创建 wiki/synthesis/co-evolving-verifier-proposal.md（~230行）
+- 定位为 SPC 方案的**第二分支方向**
+- 核心设计：三层自举架构
+  - Layer 1: TTRL outcome anchor（majority voting）
+  - Layer 2: SPC step-level signal（expensive but accurate，周期性运行）
+  - Layer 3: Lightweight Co-Evolving Verifier（cheap，用 SPC labels 训练，日常替代 probing，被 SPC 周期性校准）
+- 策略建议：首发论文做纯 SPC，Co-Evolving 作为第二篇或 Phase 4 扩展
+- 更新 index.md 索引、step-level-se-proposal.md 交叉引用
