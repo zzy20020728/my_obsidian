@@ -1,10 +1,10 @@
 ---
 title: URLVR 领域综述：无监督/无参考强化学习推理
 type: synthesis
-tags: [URLVR, 综述, 对比分析, reward-signal, PRM, self-consistency, RAG, sharpening]
+tags: [URLVR, 综述, 对比分析, reward-signal, PRM, self-consistency, RAG, sharpening, MCS, failure-modes, external-reward]
 created: 2026-04-07
 updated: 2026-04-08
-sources: [wiki/papers/zuo-2025-ttrl.md, wiki/papers/zhang-2025-empo.md, wiki/papers/rahman-2025-spark.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/wu-2026-self-judge.md, wiki/papers/royer-2026-mcnig.md, wiki/papers/wang-2026-prorag.md, wiki/papers/tan-2026-ctrl-rag.md, wiki/papers/he-2026-urlvr-scale.md]
+sources: [wiki/papers/zuo-2025-ttrl.md, wiki/papers/zhang-2025-empo.md, wiki/papers/rahman-2025-spark.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/wu-2026-self-judge.md, wiki/papers/royer-2026-mcnig.md, wiki/papers/wang-2026-prorag.md, wiki/papers/tan-2026-ctrl-rag.md, wiki/papers/he-2026-urlvr-scale.md, wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2026-grad2reward.md]
 status: active
 ---
 
@@ -103,6 +103,18 @@ status: active
 
 所有 intrinsic reward methods 本质上都在做同一件事——**sharpening the model's initial distribution**（锐化模型初始分布）。
 
+### Sharpening Theorem (Theorem 1) — 数学证明
+
+以 [[wiki/papers/zuo-2025-ttrl|TTRL]] 的 majority voting reward 为例。从 KL-regularized RL objective 出发：
+
+$$\max_{\pi_\theta} \mathbb{E}_{y \sim \pi_\theta}[r(x,y)] - \beta D_{KL}[\pi_\theta \| \pi_{ref}]$$
+
+最优策略闭式解中，majority answer 概率被放大 $e^{1/\beta}$ 倍，形成 **"rich-get-richer"** 动态。
+
+**定理**: 在两个假设下（Majority Stability + Effective Learning），$p_{maj}^{(k)}$ 以速率 $\rho = e^{-1/\beta}$ **几何收敛到 1**，策略收敛到以初始 majority answer 为唯一输出的确定性策略。
+
+**Unified Reward Framework**: 进一步证明所有 intrinsic rewards 都可统一理解为 manipulating cross-entropy between carefully chosen distributions → 推广 sharpening 分析到 certainty-based、ensemble-based 所有方法。
+
 ### Sharpening 的成功条件
 
 $$\text{Sharpening 有效} \iff P_{init}(\text{correct answer}) > P_{init}(\text{any incorrect answer})$$
@@ -118,21 +130,64 @@ $$\text{Sharpening 有效} \iff P_{init}(\text{correct answer}) > P_{init}(\text
 
 这解释了 PRISM 观察到的"100 步后崩溃"现象。
 
-### Model Collapse Step (MCS)
+**穷举调参实验**: 5 种 intrinsic reward × 4 种超参（temperature/mini-batch/KL/rollout number）网格搜索——某些设置延迟 collapse，但 **nearly all settings eventually degrade**（~1000步/4 epochs 内）。Rise-then-fall 是 **fundamental limitation，不是 engineering problem**。
 
-- **定义**: Rise → Fall 拐点步数
-- **决定因素**: Model prior（预训练质量），而非工程超参数
-- **实用价值**: MCS 高 = base model 适合 intrinsic rewards 训练
+### 三种 Failure Modes
+
+| Failure Mode | 方法 | 表现 | 严重程度 |
+|:------------|:-----|:-----|:---------|
+| **Gradual degradation** | Self-Certainty, Majority Voting | 最慢衰退，Label Accuracy 保持较高 | 最温和 |
+| **Length collapse** | Probability | 奖励短序列（概率乘积偏好短输出） | 中等 |
+| **Repetition collapse** | Token/Trajectory-Level Entropy | 重复 high-prob tokens 最小化 entropy | 最严重 |
+
+Self-Certainty 和 Majority Voting 最稳定（答案级 sharpening 而非 token 级）。
+
+### Per-Problem 分析：Amplification ≠ Correction
+
+25 个 MATH-500 问题逐个训练（100 epochs each）：22/25 问题只是**加强了初始偏好**（无论对错），仅 3/25 (12%) 实现了 wrong → correct 翻转。训练本质是 **amplification 而非 correction**。
+
+**OOD 泛化惊喜**: 在 6 个初始错误的问题上训练，虽然 train label accuracy ≈ 0，但在 OOD 问题上仍可能提升——sharpening 可以跨问题泛化。
+
+### Small Dataset Safety & Test-Time Training
+
+| 数据集大小 | 表现 |
+|-----------|------|
+| 32-128 samples | **无 collapse**（localized overfitting，不 systematic shift） |
+| 512+ | 开始出现 rise-then-fall |
+| 16k+ (DAPO-17k) | 必然 collapse |
+
+**启示**: Intrinsic URLVR 最安全的应用场景是 **test-time training on small domain-specific datasets**（如 [[wiki/papers/zuo-2025-ttrl|TTRL]] 在 40 道 AMC23 上 TTT）。
+
+### Model Collapse Step (MCS) — 实用指标
+
+- **定义**: 训练过程中 Reward Accuracy 降至 <1% 的步数
+- **优势**: 5.6x faster than full RL（1.19B vs 6.66B tokens），**不需要 GT labels**
+- **准确性**: MCS 与 GT Gain 的相关性 > Pass@k 与 GT Gain 的相关性
+- **用途**: 选择 base model 时，跑短暂 intrinsic URLVR → 看 MCS → MCS 越大越适合 RL
+
+### External Reward：突破 Intrinsic 天花板
+
+Self-Verification 实验（Countdown 任务）：
+- Reward Accuracy 先降（模型试图 exploit verifier）→ 然后恢复并稳定 > 0.5
+- 远优于 intrinsic 方法（trajectory-level entropy 持续 collapse）
+- **关键原因**: External verifier（编译器/Lean/数值检查）不随模型提升而退化
+
+两大 External Reward 路径：
+1. **Unlabeled data**: RPT/TPT/DuPO/SEAL — next-token prediction 做 reward
+2. **Generation-Verification Asymmetry**: LADDER（不定积分）/ RLSR（Countdown）/ Absolute Zero（代码）/ AlphaProof（定理证明）
 
 ### 对各论文的理论解释
 
 | 论文 | Sharpening 视角 |
 |------|----------------|
+| TTRL | Majority voting = ensemble-based intrinsic → 小数据 TTT 安全，大数据最终 collapse |
 | EMPO | Semantic entropy minimization = sharpening；entropy thresholding 是过滤 misaligned 样本的启发式 |
 | PRISM | Rise-then-fall = sharpening 的必然结果；PRM 提供非 sharpening 的 external 信号补救 |
 | SPARK | Trained PRM = external reward，不受 sharpening 限制，所以最稳定 |
 | Self-Judge | Frozen Judge = external 校准，SC 频率 = intrinsic sharpening；混合部分缓解 |
 | CTRL-RAG | CLR 利用文档对比 = computational asymmetry，可能属于 external |
+| SPAE | Confidence = certainty-based（会 sharpen）；Correctness 需要 GT（external） |
+| Grad2Reward | Self-judging = 半 external（frozen copy）；gradient attribution 不同于纯 intrinsic |
 
 ---
 
@@ -181,7 +236,7 @@ $$\text{Sharpening 有效} \iff P_{init}(\text{correct answer}) > P_{init}(\text
 ### 1. 纯内部信号长期不可靠
 **共识度**: ⭐⭐⭐⭐⭐（所有论文都涉及）
 
-PRISM 系统性证明，SPARK 间接验证（self-consistency collapse），EMPO 通过 entropy thresholding 部分缓解，He et al. 从理论上解释（sharpening mechanism + confidence-correctness misalignment）。
+PRISM 系统性证明，SPARK 间接验证（self-consistency collapse），EMPO 通过 entropy thresholding 部分缓解。He et al. (ICLR 2026) 从理论上**数学证明**（Theorem 1: 几何收敛到确定性策略）+ **穷举实验验证**（5 种方法 × 4 超参网格搜索，~1000步内必 collapse）。这是 fundamental limitation，不是 engineering problem。
 
 ### 2. Stationary Reward 优于 Non-stationary
 **共识度**: ⭐⭐⭐⭐⭐
@@ -283,7 +338,7 @@ RAG + RL
 ## 开放问题与研究方向
 
 ### 1. 长期训练稳定性
-即使最好的方法（SPARK、PRISM），在非常长期的训练中是否仍然稳定？He et al. 的 MCS 提供了预测工具，但尚未在大规模训练中验证。
+即使最好的方法（SPARK、PRISM），在非常长期的训练中是否仍然稳定？He et al. 的 **MCS (Model Collapse Step)** 提供了实用预测工具（5.6x faster，无需 GT），但其精确度尚未在大规模训练中验证。小数据集（32-128 samples）可避免 collapse → test-time training 是当前最安全的应用场景。
 
 ### 2. 跨任务泛化
 EMPO 和 SPARK 主要在数学上验证，Self-Judge 在多模态上验证，ProRAG/CTRL-RAG 在 RAG 上验证。MCNIG 展示了跨任务的 PRM 训练（数学+代码+SQL+医学），但未集成到 RL。是否能统一到一个框架？
@@ -295,7 +350,7 @@ EMPO 和 SPARK 主要在数学上验证，Self-Judge 在多模态上验证，Pro
 ProRAG 和 CTRL-RAG 开辟了 RAG RL 的新方向。能否将 ProRAG 的 step-level PRM 和 CTRL-RAG 的 faithfulness reward 结合？
 
 ### 5. Sharpening 的根本突破
-He et al. 证明 intrinsic rewards 受限于 confidence-correctness alignment。如何突破？Computational asymmetries（验证比生成容易）是一条路，MCNIG 的信息论方法是另一条路。
+He et al. 证明 intrinsic rewards 受限于 confidence-correctness alignment（Theorem 1）。如何突破？两条可行路径：(1) **Computational asymmetries / Generation-Verification Asymmetry**——验证比生成容易的任务可以构建 external reward（LADDER/RLSR/Absolute Zero/AlphaProof）；(2) **信息论方法**（MCNIG）利用 log-prob 变化构建信号。He et al. 的 self-verification 实验已初步验证 external reward 在 Countdown 任务上的有效性。
 
 ### 6. MCNIG 集成到 RL Pipeline
 MCNIG 目前仅做 best-of-K reranking。如果用 MCNIG 训练的 PRM 做 RL reward（类似 SPARK 的 Stage 3），效果会如何？

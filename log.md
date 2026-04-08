@@ -108,3 +108,24 @@ type: log
 - 创建 wiki/papers/zuo-2025-ttrl.md（完整方法/Lucky Hit 理论/实验表格/失败分析/面试 Q&A）
 - TTRL 是双层无监督架构（TTRL + SPAE-SE）的 Layer 1 (Outcome) 核心组件
 - 更新 index.md 索引
+
+## [2026-04-08] update | He et al. 2026 论文从 DRAFT 升级为完整版
+- 论文：How Far Can Unsupervised RLVR Scale LLM Training? (He et al., 2026, ICLR)
+- wiki/papers/he-2026-urlvr-scale.md 从 ~30 行 draft 升级为 ~275 行完整版
+- 新增内容：
+  - 完整统一分类体系（Certainty-based / Ensemble-based / External rewards）
+  - **Sharpening Theorem (Theorem 1)**: 数学证明 majority voting reward 下策略几何收敛到确定性策略
+  - **Unified Reward Framework**: 推广到所有 intrinsic rewards
+  - **三种 Failure Modes**: gradual degradation / length collapse / repetition collapse
+  - **Per-Problem 分析**: 22/25 问题只是 amplification 非 correction
+  - **Small Dataset Safety**: 32-128 samples 不 collapse，TTT 安全
+  - **MCS 定义与实验**: Reward Accuracy < 1% 步数，5.6x faster，无需 GT
+  - **External Reward Self-Verification 实验**: Countdown 任务，远优于 intrinsic
+  - 与所有已整理论文（TTRL/EMPO/SPARK/PRISM/Self-Judge/MCNIG/SPAE/Grad2Reward）的关系分析
+  - 对 Step-Level SE 研究方案的理论影响分析
+  - 面试 Q&A（6 题）
+
+## [2026-04-08] update | URLVR 综述页更新 He et al. 2026 新内容
+- 更新 wiki/synthesis/urlvr-landscape.md
+- 新增 Theorem 1 数学细节、三种 Failure Modes、MCS 实用指标、External Reward 路径
+- 更新核心发现章节：纳入 He et al. 的定量证据
