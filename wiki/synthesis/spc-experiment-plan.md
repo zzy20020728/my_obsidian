@@ -1,10 +1,10 @@
 ---
 title: "SPC 实验设计方案：从 TTRL 环境复现 SPAE 到无监督步骤级奖励"
 type: synthesis
-tags: [SPC, experiment-plan, TTRL, SPAE, URLVR, step-level, reward-shaping, implementation-guide, PIPO, DCPO, DARE, CLIPO, DAPO, gradient-conflict, contrastive-learning]
+tags: [SPC, experiment-plan, TTRL, SPAE, URLVR, step-level, reward-shaping, implementation-guide, PIPO, DCPO, DARE, CLIPO, DAPO, gradient-conflict, contrastive-learning, CoVerRL, SCRL, DistriTTRL, TTVS, OLR, AsymGRPO, DBB, SHAPE, Imperfect-Verifier, Self-Guide, noise-robustness, data-augmentation, Bayesian-reward, hierarchical-credit]
 created: 2026-04-08
 updated: 2026-04-10
-sources: [wiki/synthesis/step-level-se-proposal.md, wiki/papers/wu-2026-spae.md, wiki/papers/zuo-2025-ttrl.md, wiki/papers/zhang-2025-covo.md, wiki/papers/he-2026-urlvr-scale.md, wiki/papers/wang-2026-pipo.md, wiki/papers/ma-2026-dcpo.md, wiki/papers/du-2026-dare.md, wiki/papers/cui-2026-clipo.md, wiki/papers/du-2026-dual-consensus.md, wiki/papers/liao-2026-t3rl.md, wiki/papers/wang-2026-sarl.md]
+sources: [wiki/synthesis/step-level-se-proposal.md, wiki/papers/wu-2026-spae.md, wiki/papers/zuo-2025-ttrl.md, wiki/papers/zhang-2025-covo.md, wiki/papers/he-2026-urlvr-scale.md, wiki/papers/wang-2026-pipo.md, wiki/papers/ma-2026-dcpo.md, wiki/papers/du-2026-dare.md, wiki/papers/cui-2026-clipo.md, wiki/papers/du-2026-dual-consensus.md, wiki/papers/liao-2026-t3rl.md, wiki/papers/wang-2026-sarl.md, wiki/papers/pan-2026-coverrl.md, wiki/papers/yan-2026-scrl.md, wiki/papers/yang-2026-distribttrl.md, wiki/papers/bai-2026-ttvs.md, wiki/papers/yang-2026-olr.md, wiki/papers/gu-2026-asymgrpo.md, wiki/papers/kim-2026-dbb.md, wiki/papers/ai-2026-shape.md, wiki/papers/plesner-2026-imperfect-verifier.md, wiki/papers/wang-2026-self-guide.md]
 status: active
 ---
 
@@ -608,9 +608,9 @@ $$\hat{A}_{i,j} = \hat{A}^{Group}_i \cdot f(\Phi_{SPC}) + \xi \cdot g(\Delta \Ph
 | G8 | TTRL + CLIPO contrastive only | Contrastive-only baseline |
 | G9 | TTRL + SPC + CLIPO contrastive | SPC + 跨轨迹信号 |
 
-### 修订后的最小实验矩阵（更新版）
+### 修订后的最小实验矩阵（第三版）
 
-如果算力有限，优先跑以下 8 组：
+如果算力有限，优先跑以下 11 组：
 
 | 优先级 | 实验组 | 优化框架 | Outcome Signal | Step Signal | 目的 |
 |--------|--------|----------|---------------|-------------|------|
@@ -620,8 +620,11 @@ $$\hat{A}_{i,j} = \hat{A}^{Group}_i \cdot f(\Phi_{SPC}) + \xi \cdot g(\Delta \Ph
 | P3 | TTRL + Confidence | DAPO | naive MV | Probe entropy | 最简 baseline |
 | P4 | TTRL + Step SE | DAPO | naive MV | Semantic entropy | 旧思路 baseline |
 | P5 | **TTRL + SPC-only** | **DAPO** | naive MV | **SPC (augmentation)** | **主方法** |
+| P5b | TTRL + SPC (precision-first) | DAPO | naive MV | SPC (阈值过滤) | 精度优先变体 |
 | P6 | DARE + SPC | DAPO | DARE distribution | SPC (augmentation) | 升级 anchor |
+| P6b | DBB + SPC | DAPO | DBB Beta posterior | SPC (augmentation) | 零成本升级 anchor |
 | P7 | TTRL + SPC + CLIPO | DAPO | naive MV | SPC + contrastive | 跨轨迹扩展 |
+| P8 | SHAPE (GT) | DAPO | GT | Hierarchical | 有监督 step-level 对照 |
 
 ### 新增的最容易踩坑的地方
 
@@ -633,3 +636,71 @@ $$\hat{A}_{i,j} = \hat{A}^{Group}_i \cdot f(\Phi_{SPC}) + \xi \cdot g(\Delta \Ph
 
 #### 坑 8：SPC 和 outcome reward 的梯度冲突
 类似 DCPO 发现的 accuracy-calibration conflict，SPC 信号和 outcome reward 可能在某些 token 上方向相反。症状：训练停滞、两个 loss 交替上下。解决：尝试 DCPO-style gradient masking 或降低 SPC 信号权重。
+
+#### 坑 9：不要使用传统噪声鲁棒方法
+[[wiki/papers/yang-2026-olr|OLR]] 明确证明 small-loss selection、confidence learning 等 SFT 领域的经典噪声处理方法在 RLVR 中灾难性失败（-17.4%）。原因：RL 的 loss landscape 与 SFT 根本不同。如果 SPC 信号有噪声，应该用 precision-first threshold 过滤而非 small-loss selection。
+
+#### 坑 10：SHAPE 对比实验需要公平设置
+[[wiki/papers/ai-2026-shape|SHAPE]] 需要 GT correctness（有监督），SPC 不需要。对比时需要同时报告：(1) SHAPE with GT vs SPC without GT（公平性对比）；(2) SHAPE with pseudo-label vs SPC（同等设置对比）。不要只报告 SHAPE with GT 然后说 SPC 不如它。
+
+## 基于第二批新论文的实验设计补充修订
+
+> 第二批 2026 年新论文（CoVerRL, SCRL, DistriTTRL, TTVS, OLR, AsymGRPO, DBB, SHAPE, Imperfect Verifier, Self-Guide）进一步完善了 SPC 实验的对照设计、信号设计原则和零成本增强策略。
+
+### 补充修订 6：新增 SHAPE 作为直接对照 Baseline
+
+**依据**：[[wiki/papers/ai-2026-shape|SHAPE]] (arXiv:2604.06636) 提出 segment-level solvability potential + token-level entropy 重分配，是 SPC 最直接的 step-level credit assignment 竞品。
+
+**修订建议**：
+- Phase 4 实验矩阵必须包含 SHAPE 作为对照组
+- 关键对比维度：SHAPE 需要 GT correctness，SPC 不需要；SHAPE 的 solvability 是启发式，SPC 的 consistency 是经验性测量
+- 同时记录 token efficiency 指标（SHAPE 声称 -30% tokens）
+
+**新增实验组**：
+
+| 组别 | 方法 | 需要 GT | 目的 |
+|------|------|--------|------|
+| G10 | SHAPE (GT-based hierarchical) | 是 | Step-level 有监督上界对照 |
+| G11 | SHAPE (pseudo-label variant) | 否 | SHAPE 无监督化对照 |
+
+### 补充修订 7：OLR/Imperfect Verifier 指导 SPC 信号设计原则
+
+**依据**：
+- [[wiki/papers/yang-2026-olr|OLR]] 证明传统噪声鲁棒方法（small-loss selection）在 RLVR 中灾难性失败（-17.4%）
+- [[wiki/papers/plesner-2026-imperfect-verifier|Imperfect Verifier]] 证明 15% 噪声率内仍鲁棒
+
+**修订建议**：
+- SPC 信号设计应遵循 "precision-first" 原则：宁可在不确定步骤不给信号，也不要给错误信号
+- 不要套用 SFT 领域的噪声鲁棒技术（如 confidence learning, small-loss trick）到 SPC
+- 新增 "SPC signal threshold" 超参扫描实验：只在 SPC_k 高于某阈值（如 0.8）或低于某阈值（如 0.2）时才给 shaping reward
+
+**新增实验组**：
+
+| 组别 | SPC 阈值策略 | 目的 |
+|------|-------------|------|
+| G12a | SPC 全量信号 (无阈值) | 基础方式 |
+| G12b | SPC 阈值过滤 (只给 >0.8 或 <0.2) | Precision-first |
+| G12c | SPC 渐进过滤 (早期全量 → 后期收紧阈值) | OLR-inspired progressive refinement |
+
+### 补充修订 8：DBB Beta Posterior 作为零成本 Layer 1 增强
+
+**依据**：[[wiki/papers/kim-2026-dbb|DBB]] 的 Beta-Bernoulli posterior 利用历史统计平滑 reward 估计，零额外计算/内存，OOD +12.49%
+
+**修订建议**：
+- DBB 可以直接集成到 TTRL Layer 1 作为零成本增强
+- 替代 naive MV 的 binary reward，用 Beta posterior 均值作为连续 reward
+
+**新增实验组**：
+
+| 组别 | Layer 1 Reward | Step Signal | 目的 |
+|------|---------------|-------------|------|
+| G13 | DBB (Beta posterior) | 无 | DBB-only baseline |
+| G14 | DBB (Beta posterior) | SPC (augmentation) | DBB + SPC |
+
+### 补充修订 9：TTVS 数据增广策略
+
+**依据**：[[wiki/papers/bai-2026-ttvs|TTVS]] 通过动态增广测试数据为语义等价变体，扩大 TTRL 的有效训练集
+
+**修订建议**：
+- TTVS 的数据增广可以提升 SPC 实验的 robustness
+- 在 Phase 4 后期考虑：将 TTVS 的 variational synthesis 应用到 SPC 的 test data

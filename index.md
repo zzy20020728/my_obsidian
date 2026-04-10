@@ -27,25 +27,41 @@ updated: 2026-04-10
 - [[wiki/papers/du-2026-dual-consensus|DCRL (Du et al., 2026)]] — ⭐ 双阶段投票逃离 TTRL 虚假多数：clone anchor + unlearn explorer → harmonic mean 共识 → 三级 reward + adaptive sampling，Qwen3-8B Avg 50.9
 - [[wiki/papers/du-2026-dare|DARE (Du et al., 2026, ICML)]] — ⭐ 分布感知 reward 替代 point-level MV：uncertainty-normalized distribution + exploration bonus + pruning，AIME24 +25.3% over TTRL
 - [[wiki/papers/liao-2026-t3rl|T³RL (Liao et al., 2026)]] — 工具验证锚定 TTRL reward：Verifier LLM → Python 代码 → code interpreter 执行 → 加权 MV（ω=5），AIME24 +31.6% over TTRL
+- [[wiki/papers/pan-2026-coverrl|CoVerRL (Pan et al., 2026)]] — ⭐ 单一模型 generator-verifier 共演化突破 consensus trap：MV 提供对比信号训练 verifier → verifier 过滤 self-consistent errors，verification accuracy 55%→85%，超越 TTRL 4.7-5.9%
+- [[wiki/papers/yan-2026-scrl|SCRL (Yan et al., 2026)]] — ⭐ 首次 TTRL 负 pseudo-labeling：selective positive + entropy-gated negative supervision，受限 rollout 预算下 AIME25 +5.8%，Minerva +27.1%
+- [[wiki/papers/yang-2026-distribttrl|DistriTTRL (Yang et al., 2026)]] — GMM 建模置信度分布 + shift correction 聚合历史 rollout + diversity penalty 防 reward hacking，AIME24 +7.50
+- [[wiki/papers/bai-2026-ttvs|TTVS (Bai et al., 2026)]] — ⭐ 动态增广测试数据为语义等价变体 + hybrid IGE/CGE 探索，无标签超越有监督 RLVR（1.5B > DeepSeek-R1-Distill-7B）
+- [[wiki/papers/kim-2026-dbb|DBB (Kim et al., 2026)]] — Beta-Bernoulli 贝叶斯 reward estimation，利用历史统计降低方差，OOD +12.49%（1.7B）/ +6.92%（8B），零额外计算
+
+### URLVR 分布匹配（Distribution Matching 范式）
+- [[wiki/papers/chen-2026-powerflow|PowerFlow (Chen et al., 2026)]] — ⭐ GFlowNet + α-power 分布匹配的无监督微调：LA-TB 目标消除长度偏差，α>1 锐化推理匹配/超越 GRPO，α<1 平坦化释放创造力，证明 MV-RLIF 等价极端锐化
 
 ### RLVR Training Stability（训练稳定性与优化改进）
 - [[wiki/papers/ma-2026-dcpo|DCPO (Ma et al., 2026)]] — 证明 accuracy-calibration gradient conflict 并解耦：masked gradient 分别优化 reasoning/confidence tokens，ECE -71.6% 且 accuracy 不降
 - [[wiki/papers/wang-2026-pipo|PIPO (Wang et al., 2026)]] — ⭐ 暴露 GRPO 梯度爆炸缺陷 η(p)→∞，提出 PIRL 框架 + dual-stage explore-verify，跨 GRPO/GSPO/DAPO 一致提升
 - [[wiki/papers/cui-2026-clipo|CLIPO (Cui et al., 2026, Alibaba Qwen)]] — InfoNCE 对比学习抑制 spurious reasoning：successful rollouts 表示聚拢 + reward augmentation，跨 4 种 RL 算法一致提升
+- [[wiki/papers/gu-2026-asymgrpo|AsymGRPO (Gu et al., 2026)]] — 将 entropy 分解为 informative vs spurious，非对称调制正负 rollouts，Qwen3-4B avg 60.32%（+3.82% over GRPO）
+- [[wiki/papers/ai-2026-shape|SHAPE (Ai et al., 2026)]] — 层次化 credit assignment：段级 solvability potential + token 级 entropy 重分配，+3% accuracy with 30% less tokens
 
 ### Label-Free / Open-Domain RL（无标注/开放域 RL）
 - [[wiki/papers/wang-2026-sarl|SARL (Wang et al., 2026)]] — ⭐ 推理拓扑结构做 reward：小世界网络 SR(G)=0.5·C+1/(1+L)，完全 label-free，Qwen3-4B 数学超越 GT RL，WildBench +9.10
 - [[wiki/papers/huang-2026-darl|DARL (Huang et al., 2026)]] — 动态多样性 reward 鼓励多样正确路径，General +9.5（需要 GT，非纯 URLVR）
 
+### Label Noise Robustness（标签噪声鲁棒性）
+- [[wiki/papers/yang-2026-olr|OLR (Yang et al., 2026)]] — ⭐ 系统分析 RLVR 中 noisy labels（inactive vs active 两类），Early Correctness Coherence 现象，Online Label Refinement 渐进自纠正，robust across noise ratio 0.1-0.9
+- [[wiki/papers/plesner-2026-imperfect-verifier|Imperfect Verifier (Plesner et al., 2026)]] — 证明 RLVR 对 noisy verification 鲁棒：15% noise rate 仍在 clean baseline 2pp 内，"moderate accuracy + high precision" 原则
+
 ### Multimodal Self-Improvement（多模态自进化）
 - [[wiki/papers/tan-2026-meta-ttrl|Meta-TTRL (Tan et al., 2026)]] — TTRL 扩展到 T2I：元认知架构（rubric-based 二值验证 + 几何平均 reward），自我内省(7B) > 外部强模型(235B)
 - [[wiki/papers/wang-2026-v-zero|V-Zero (Wang et al., 2026)]] — ⭐ 零标注 VLM 自进化：Questioner-Solver co-evolution + Dual-Track Reasoning Reward（intuition vs reasoning），无监督超越有监督 GRPO
+- [[wiki/papers/yu-2026-csrs|CSRS (Yu et al., 2026)]] — 多模态无监督自进化：Retracing Re-inference + Softened Frequency Reward + Visual Semantic Perturbation，几何任务 SOTA
 
 ### Semi-Supervised RLVR
 - [[wiki/papers/yang-2025-trapo|TraPO (Yang et al., 2025)]] — ⭐ 首创半监督 RLVR：trajectory matching 选可靠无标注样本，1K 标注 + 3K 无标注超越 45K 无监督，10% 标注超全量监督
 
 ### Self-Play / Multi-Agent Co-Evolution
 - [[wiki/papers/chen-2025-mae|MAE (Chen & Wang et al., 2025)]] — Proposer-Solver-Judge 三角色 co-evolution，无需 GT/外部 verifier，Qwen2.5-3B +4.54%
+- [[wiki/papers/wang-2026-self-guide|Self-Guide (Wang et al., 2026)]] — Policy-reward co-evolution：同一模型生成 internal reward 用于 inference-time guidance 和 training-time step-level reward，+8% over environment-reward-only baselines
 
 ### Step-Level Credit Assignment / Efficient Reasoning
 - [[wiki/papers/wu-2026-spae|SPAE (Wu et al., 2026)]] — Training-free probing 提取 Step Potential，step-level advantage estimation，解决 Over-Checking 和 R2W 失败

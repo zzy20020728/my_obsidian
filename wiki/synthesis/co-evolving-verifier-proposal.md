@@ -1,10 +1,10 @@
 ---
 title: "Co-Evolving Verifier: 让 PRM 跟着 RL 训练一起进化"
 type: synthesis
-tags: [co-evolving, PRM, URLVR, SPC, bootstrapping, self-improving, reward-model, research-proposal, V-Zero, Meta-TTRL, DCRL, DARE, metacognitive-synergy, capacity-matched]
+tags: [co-evolving, PRM, URLVR, SPC, bootstrapping, self-improving, reward-model, research-proposal, V-Zero, Meta-TTRL, DCRL, DARE, metacognitive-synergy, capacity-matched, CoVerRL, Self-Guide, imperfect-verifier, balanced-training, beta-posterior, noise-tolerance, SCRL, PowerFlow, DistriTTRL, OLR, DBB]
 created: 2026-04-08
 updated: 2026-04-10
-sources: [wiki/synthesis/step-level-se-proposal.md, wiki/papers/rahman-2025-spark.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/he-2026-urlvr-scale.md, wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2025-covo.md, wiki/papers/wang-2026-v-zero.md, wiki/papers/tan-2026-meta-ttrl.md, wiki/papers/du-2026-dual-consensus.md, wiki/papers/du-2026-dare.md, wiki/papers/cui-2026-clipo.md]
+sources: [wiki/synthesis/step-level-se-proposal.md, wiki/papers/rahman-2025-spark.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/he-2026-urlvr-scale.md, wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2025-covo.md, wiki/papers/wang-2026-v-zero.md, wiki/papers/tan-2026-meta-ttrl.md, wiki/papers/du-2026-dual-consensus.md, wiki/papers/du-2026-dare.md, wiki/papers/cui-2026-clipo.md, wiki/papers/pan-2026-coverrl.md, wiki/papers/wang-2026-self-guide.md, wiki/papers/plesner-2026-imperfect-verifier.md, wiki/papers/yan-2026-scrl.md, wiki/papers/chen-2026-powerflow.md, wiki/papers/yang-2026-distribttrl.md, wiki/papers/yang-2026-olr.md, wiki/papers/kim-2026-dbb.md]
 status: draft
 ---
 
@@ -51,6 +51,9 @@ SPARK (Rahman et al.) 自己也发现了这个问题——直接用 self-consist
 | **SPARK (Rahman et al., 2025)** 已读 | 自训练 PRM 但冻结使用。 | PRM 训练时用 self-consistency | 近，但 PRM 不进化 |
 | **V-Zero (Wang et al., 2026/01)** arXiv:2601.10094 | Questioner-Solver co-evolution。Questioner 生成 MCQ + intuitive answer，Solver 用 CoT 推理 + MV 获得 pseudo-label，Dual-Track Reward 对比 intuition vs reasoning。 | **否** — 完全无标注 | **非常近** — 纯 URLVR co-evolution |
 | **Meta-TTRL (Tan et al., 2026/03)** arXiv:2603.15724 | TTRL 扩展到 T2I。元认知架构（生成器+内省器），rubric-based 二值评估 → 几何平均聚合 reward。 | **否** — 自我评估 | 中等 — T2I 领域，但 metacognitive synergy 发现高度相关 |
+| **[[wiki/papers/pan-2026-coverrl\|CoVerRL (Pan et al., 2026)]]** | 单一模型交替充当 generator/verifier，MV 提供对比训练信号实现 co-evolution。Balanced training（$\|V^+\| = \|V^-\|$）是关键。Verification accuracy 55%→85%，+4.7-5.9% over TTRL。 | 否（MV-based） | **非常近** — 直接验证了 co-evolving 可行性，但 outcome-level |
+| **[[wiki/papers/wang-2026-self-guide\|Self-Guide (Wang et al., 2026)]]** | 同一模型生成 internal reward，用于 inference-time guidance + training-time step-level reward。Policy-reward co-evolution loop。 | 否（internal reward） | **近** — policy-reward loop 与我们的 SPC-Verifier loop 同构 |
+| **[[wiki/papers/plesner-2026-imperfect-verifier\|Imperfect Verifier (Plesner et al., 2026)]]** | 证明 15% 噪声率内 RLVR 仍鲁棒。"Moderate accuracy + high precision" 原则。 | N/A（理论分析） | **中等** — 为不完美 co-evolving verifier 提供容错理论 |
 
 ### 关键发现
 
@@ -60,6 +63,9 @@ SPARK (Rahman et al.) 自己也发现了这个问题——直接用 self-consist
 4. **纯 URLVR 下的 co-evolving PRM 目前没有人做过。** 这是一个空白。
 5. **V-Zero 是纯 URLVR 下 co-evolution 的最强证据**。它证明了两个关键点：(a) 完全无标注的 co-evolution 可以超越有监督 GRPO（51.9 vs 50.8）；(b) Dual-Track Reward 提供了一种非 GT 的 reward 信号替代方案。V-Zero 的 Questioner-Solver 架构与我们的 SPC-PRM co-evolving 方案高度类似——Questioner 类似 SPC（提供评估信号），Solver 类似 Policy。
 6. **Meta-TTRL 的 Metacognitive Synergy 发现**：自我内省（7B）产生的 reward 信号优于外部强模型（235B GPT-4o/Gemini）。这为 SPC 的 probing-based self-evaluation 路线提供了理论支撑——capacity-matched signals 比 absolute evaluator strength 更有效。如果自评估信号天然匹配模型当前能力，那么 SPC-anchored Co-Evolving Verifier 作为自评估的加速版本，理论上也应优于外部冻结 PRM。
+7. **[[wiki/papers/pan-2026-coverrl|CoVerRL]] 直接验证了 co-evolving 可行性且无需 GT**。单一模型交替充当 generator/verifier，MV 提供对比训练信号，verification accuracy 从 55%→85%。关键区别：CoVerRL 是 outcome-level，我们的方案是 step-level（通过 SPC），粒度更细。
+8. **[[wiki/papers/plesner-2026-imperfect-verifier|Imperfect Verifier]] 为不完美 co-evolving 提供容错理论**。只要 verifier 的 precision 足够高（即使 recall 不完美），RLVR 训练仍然鲁棒。这直接减轻了"co-evolving verifier 不够准确"的担忧。
+9. **[[wiki/papers/wang-2026-self-guide|Self-Guide]] 验证了 policy-reward co-evolution loop 的有效性**。在 agent 任务上 +8% over environment-reward-only baselines。其架构（同一模型生成 internal reward）与我们的 SPC-anchored verifier 高度同构。
 
 ## 核心挑战：Mutual Sharpening
 
@@ -81,13 +87,19 @@ SPARK (Rahman et al.) 自己也发现了这个问题——直接用 self-consist
 
 ### 新论文对 Mutual Sharpening 风险的缓解
 
-三篇新论文为缓解 mutual sharpening 提供了新工具：
+多篇新论文为缓解 mutual sharpening 提供了新工具：
 
 1. **DCRL/DARE 升级 Layer 1 Anchor**：如果将 Layer 1 的 naive majority voting 升级为 [[wiki/papers/du-2026-dual-consensus|DCRL]] 的 dual consensus 或 [[wiki/papers/du-2026-dare|DARE]] 的 distribution-aware estimation，Layer 1 的 outcome anchor 本身更可靠。更可靠的 anchor 意味着 SPC 校准信号也更可靠（因为 SPC 的 a_final 来源于 outcome anchor），从而减少 mutual sharpening 的起点误差。
 
 2. **CLIPO Contrastive Regularization**：[[wiki/papers/cui-2026-clipo|CLIPO]] 的 InfoNCE 对比学习可以作为 co-evolving 过程中的额外正则化——强制正确推理在表示空间中聚拢，防止 policy 和 verifier 在 spurious reasoning 上达成"虚假共识"。
 
 3. **V-Zero 的 Ambiguity Reward**：V-Zero 在 consistency case 给 ambiguity reward（$\min(c, 1-c)$），主动抑制过度 sharpening。Co-Evolving Verifier 可以借鉴：当 SPC 和 Verifier 的判断高度一致时（可能已经 sharpened），降低 reward 信号强度；当两者分歧时（真正需要校准的区间），增大信号。
+
+4. **[[wiki/papers/pan-2026-coverrl|CoVerRL]] 的 Balanced Training**：CoVerRL 发现 balanced training（$|V^+| = |V^-|$）是防止 co-evolution 退化的关键。在我们的架构中，这意味着 SPC 校准数据应保持正负样本平衡——不能只用 high-SPC 步骤训练 verifier，也要包含 low-SPC 步骤。
+
+5. **[[wiki/papers/kim-2026-dbb|DBB]] 的 Beta Posterior 平滑**：DBB 的 Beta-Bernoulli posterior 可以作为 co-evolving verifier 的在线校准信号——利用历史 rollout 统计信息平滑当前 batch 的 verifier 判断，防止单 batch 噪声导致 mutual drift。零额外计算开销。
+
+6. **[[wiki/papers/plesner-2026-imperfect-verifier|Imperfect Verifier]] 的容错边界**：15% 噪声率内仍鲁棒。这意味着 co-evolving verifier 不需要完美——只要维持 >85% precision，就足以提供有效训练信号。
 
 ## 方案：SPC-Anchored Co-Evolving Verifier
 
@@ -230,6 +242,15 @@ $$
 2. 可以引入 DCRL 的 Dynamic Sampling 思路——优先采样 SPC 和 Verifier 分歧大的"困难"样本进行校准
 3. 如果资源允许，可以考虑增加 Questioner 模块作为第四层
 
+### 风险 5: CoVerRL 已证明 outcome-level co-evolving 有效，step-level 是否有额外价值？
+
+**描述**：[[wiki/papers/pan-2026-coverrl|CoVerRL]] 用相对简单的 outcome-level generator-verifier 交替训练就获得了 +4.7-5.9% 提升。如果 outcome-level 已足够，step-level co-evolving 的边际价值是否值得额外的工程和计算成本？
+
+**缓解**：
+1. CoVerRL 自身也发现了 "consensus trap" 问题——当 MV 错误时 verifier 无法纠正，只能减少错误放大。Step-level SPC 信号可以在 MV 错误时通过 process inconsistency 提供更早的预警
+2. [[wiki/papers/rahman-2025-spark|SHAPE]] 已证明 step-level credit assignment 可以在提升 accuracy 的同时减少 30% token 消耗——效率提升是 step-level 的独有优势
+3. 可以设计 CoVerRL + SPC 的组合实验，验证 step-level 的边际价值
+
 ## 实验设计（如果独立成文）
 
 ### Exp 1: SPC vs Verifier 的信号质量对比
@@ -284,3 +305,6 @@ $$
 - vs [[wiki/papers/ghimire-2026-prism|PRISM]]：PRISM 混合冻结 PRM + self-certainty；我们让 PRM 动态进化，且用语义 rollout consistency 替代 self-certainty。
 - vs **V-Zero (Wang et al., 2601.10094)**：V-Zero 的 Questioner-Solver co-evolution 与我们的 SPC-Verifier co-evolution 架构相似，但 V-Zero 用 Dual-Track Reward（intuition vs reasoning），我们用 SPC（semantic rollout consistency）做校准信号。V-Zero 在 VLM 上验证 co-evolution 超越有监督，为我们的方案提供了跨模态的信心。
 - vs **Meta-TTRL (Tan et al., 2603.15724)**：Meta-TTRL 的 Metacognitive Synergy（自评估 > 外部强评估）直接支持 SPC-anchored 自评估路线。我们的 Co-Evolving Verifier 本质上是 capacity-matched 的自评估加速器。
+- vs **[[wiki/papers/pan-2026-coverrl|CoVerRL (Pan et al., 2026)]]**：CoVerRL 最接近我们的 co-evolving 理念，但它在 outcome-level 做 generator-verifier 交替训练；我们的方案在 step-level 做 SPC-anchored verifier 训练，提供更细粒度的 process-level 信号。CoVerRL 的 balanced training 发现值得直接借鉴。
+- vs **[[wiki/papers/wang-2026-self-guide|Self-Guide (Wang et al., 2026)]]**：Self-Guide 的 policy-reward co-evolution 架构与我们最接近。关键差异：(1) Self-Guide 用于 agent 任务，我们用于数学推理 URLVR；(2) Self-Guide 的 internal reward 是 trajectory-level，我们的是 step-level；(3) Self-Guide 没有周期性校准机制，我们用 SPC 做周期性重校准。
+- vs **[[wiki/papers/plesner-2026-imperfect-verifier|Imperfect Verifier (Plesner et al., 2026)]]**：Imperfect Verifier 为我们的方案提供了最直接的理论支撑——co-evolving verifier 不需要完美，只需 precision 足够高。15% 容错边界为 Phase C 的在线校准频率选择提供了量化依据。

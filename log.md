@@ -323,3 +323,48 @@ type: log
 - 5 项关键修订：(1) GRPO→DAPO 基础优化器、(2) CLIPO augmentation 集成、(3) Layer 1 DCRL/DARE 升级实验、(4) DCPO 梯度解耦消融、(5) CLIPO contrastive 对比组
 - 更新版最小实验矩阵（8 组，含新 baseline 和 augmentation 变体）
 - 3 个新坑提醒（DAPO 超参、contrastive batch size、dual consensus 成本）
+
+## [2026-04-10] ingest | 三篇 URLVR 新论文摄入
+- 摄入论文：CoVerRL (Pan et al., 2026, ZJU+Baidu) — Generator-Verifier 共演化突破 consensus trap，单一模型交替双角色，verification accuracy 55%→85%，超越 TTRL 4.7-5.9%
+- 摄入论文：SCRL (Yan et al., 2026, UCAS+CASIA) — 首次 TTRL 负 pseudo-labeling：selective positive + entropy-gated negative supervision，受限 rollout 预算下鲁棒训练，AIME25 +5.8%
+- 摄入论文：PowerFlow (Chen et al., 2026, Tsinghua IIIS) — GFlowNet + α-power 分布匹配，LA-TB 消除长度偏差，无监督匹配/超越有监督 GRPO，理论证明 MV-RLIF 等价极端分布锐化
+- 创建 wiki 页面：pan-2026-coverrl.md, yan-2026-scrl.md, chen-2026-powerflow.md
+- 更新 index.md：新增 CoVerRL/SCRL 到 Reward Estimation 分类，新增 Distribution Matching 分类收录 PowerFlow
+- 与 SPC/Co-Evolving Verifier 方案的关联分析已写入各论文页
+
+## [2026-04-10] ingest | 9 篇 URLVR 新论文摄入（Batch 2-4）
+
+通过 arXiv MCP 工具批量下载并摄入剩余 9 篇论文。
+
+### Batch 2: TTRL 改进 & 数据增强 & 噪声鲁棒（3 篇）
+- 摄入论文：DistriTTRL (Yang et al., 2026, Southeast Univ + Kuaishou) — GMM 建模置信度分布 + shift correction 聚合历史 rollout + diversity penalty 防 reward hacking，AIME24 +7.50
+- 摄入论文：TTVS (Bai et al., 2026, HKUST) — 动态增广测试数据为语义等价变体 + hybrid IGE/CGE 探索，无标签 1.5B 超越 DeepSeek-R1-Distill-7B
+- 摄入论文：OLR (Yang et al., 2026, ZJU + Ant) — 系统分析 RLVR 噪声标签（inactive vs active），Early Correctness Coherence 现象，Online Label Refinement 渐进自纠正
+- 创建 wiki 页面：yang-2026-distribttrl.md, bai-2026-ttvs.md, yang-2026-olr.md
+
+### Batch 3: 训练优化 & Reward 估计 & 多模态（3 篇）
+- 摄入论文：AsymGRPO (Gu et al., 2026, NCSU) — 将 entropy 分解为 informative vs spurious，非对称调制正负 rollouts，+3.82% over GRPO
+- 摄入论文：DBB (Kim et al., 2026, KAIST) — Beta-Bernoulli 贝叶斯 reward estimation，利用历史统计降低方差，OOD +12.49%，零额外计算
+- 摄入论文：CSRS (Yu et al., 2026, Tsinghua) — 多模态无监督自进化：Retracing Re-inference + Softened Frequency Reward + Visual Semantic Perturbation，几何 SOTA
+- 创建 wiki 页面：gu-2026-asymgrpo.md, kim-2026-dbb.md, yu-2026-csrs.md
+
+### Batch 4: 层次信用分配 & 噪声容忍 & 共演化（3 篇）
+- 摄入论文：SHAPE (Ai et al., 2026) — 层次化 credit assignment：段级 solvability potential + token 级 entropy 重分配，+3% accuracy with 30% less tokens
+- 摄入论文：Imperfect Verifier (Plesner et al., 2026) — 证明 RLVR 对 noisy verification 鲁棒，15% noise rate 仍在 clean baseline 2pp 内
+- 摄入论文：Self-Guide (Wang et al., 2026) — Policy-reward co-evolution，同一模型生成 internal reward 用于 inference-time guidance + training-time step-level reward，+8%
+- 创建 wiki 页面：ai-2026-shape.md, plesner-2026-imperfect-verifier.md, wang-2026-self-guide.md
+
+### 索引更新
+- 更新 index.md：新增 DistriTTRL/TTVS/DBB 到 Reward Estimation，AsymGRPO/SHAPE 到 Training Stability，OLR/Imperfect Verifier 到新建 Label Noise Robustness 分类，CSRS 到 Multimodal，Self-Guide 到 Co-Evolution
+- 论文总数：28+3 → **40 篇**
+
+### 对 SPC/Co-Evolving Verifier 方案的关键新洞察（12 篇汇总）
+- **CoVerRL 直接验证了 Co-Evolving Verifier 可行性**，但它是 outcome-level，SPC 可提供更细粒度的 step-level 信号
+- **SCRL 的负监督信号**可在 step-level 与 SPC 结合——"知道什么是错的"比"知道什么是对的"更可靠
+- **OLR 的 Early Correctness Coherence**：正确答案在早期训练中已"潜伏"于模型，为 SPC probing 提供理论基础
+- **PowerFlow Theorem D.1**：MV-based RLIF 等价于极端 sharpening（理论证明）
+- **DBB 的 Beta posterior**可直接作为 Co-Evolving Verifier 的校准信号
+- **Imperfect Verifier**为 SPC 的不完美 reward 提供容错理论支撑
+- **TTVS**的数据增广思路可扩展 SPC 的测试数据覆盖
+- **SHAPE**的层次化方法与 SPC step-level 方案互补
+- **Self-Guide**的 policy-reward co-evolution loop 与 Co-Evolving Verifier 方案高度同构
