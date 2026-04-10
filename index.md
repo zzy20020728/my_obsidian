@@ -2,8 +2,6 @@
 title: Wiki 索引
 type: index
 updated: 2026-04-10
-
----
 ---
 
 # Wiki 索引
@@ -24,6 +22,24 @@ updated: 2026-04-10
 - [[wiki/papers/wu-2026-self-judge|Self-Judge (Wu et al., 2026)]] — Actor-Judge 多模态无监督自进化，distributional reward modeling
 - [[wiki/papers/royer-2026-mcnig|MCNIG (Royer et al., 2026)]] — 信息论自动生成 PRM 训练数据，O(N) 复杂度，跨任务泛化
 - [[wiki/papers/he-2026-urlvr-scale|How Far Can URLVR Scale? (He et al., 2026)]] — ⭐ICLR 2026，URLVR 统一理论框架，sharpening mechanism，MCS 概念
+
+### URLVR Reward Estimation（改进 TTRL Reward 质量）
+- [[wiki/papers/du-2026-dual-consensus|DCRL (Du et al., 2026)]] — ⭐ 双阶段投票逃离 TTRL 虚假多数：clone anchor + unlearn explorer → harmonic mean 共识 → 三级 reward + adaptive sampling，Qwen3-8B Avg 50.9
+- [[wiki/papers/du-2026-dare|DARE (Du et al., 2026, ICML)]] — ⭐ 分布感知 reward 替代 point-level MV：uncertainty-normalized distribution + exploration bonus + pruning，AIME24 +25.3% over TTRL
+- [[wiki/papers/liao-2026-t3rl|T³RL (Liao et al., 2026)]] — 工具验证锚定 TTRL reward：Verifier LLM → Python 代码 → code interpreter 执行 → 加权 MV（ω=5），AIME24 +31.6% over TTRL
+
+### RLVR Training Stability（训练稳定性与优化改进）
+- [[wiki/papers/ma-2026-dcpo|DCPO (Ma et al., 2026)]] — 证明 accuracy-calibration gradient conflict 并解耦：masked gradient 分别优化 reasoning/confidence tokens，ECE -71.6% 且 accuracy 不降
+- [[wiki/papers/wang-2026-pipo|PIPO (Wang et al., 2026)]] — ⭐ 暴露 GRPO 梯度爆炸缺陷 η(p)→∞，提出 PIRL 框架 + dual-stage explore-verify，跨 GRPO/GSPO/DAPO 一致提升
+- [[wiki/papers/cui-2026-clipo|CLIPO (Cui et al., 2026, Alibaba Qwen)]] — InfoNCE 对比学习抑制 spurious reasoning：successful rollouts 表示聚拢 + reward augmentation，跨 4 种 RL 算法一致提升
+
+### Label-Free / Open-Domain RL（无标注/开放域 RL）
+- [[wiki/papers/wang-2026-sarl|SARL (Wang et al., 2026)]] — ⭐ 推理拓扑结构做 reward：小世界网络 SR(G)=0.5·C+1/(1+L)，完全 label-free，Qwen3-4B 数学超越 GT RL，WildBench +9.10
+- [[wiki/papers/huang-2026-darl|DARL (Huang et al., 2026)]] — 动态多样性 reward 鼓励多样正确路径，General +9.5（需要 GT，非纯 URLVR）
+
+### Multimodal Self-Improvement（多模态自进化）
+- [[wiki/papers/tan-2026-meta-ttrl|Meta-TTRL (Tan et al., 2026)]] — TTRL 扩展到 T2I：元认知架构（rubric-based 二值验证 + 几何平均 reward），自我内省(7B) > 外部强模型(235B)
+- [[wiki/papers/wang-2026-v-zero|V-Zero (Wang et al., 2026)]] — ⭐ 零标注 VLM 自进化：Questioner-Solver co-evolution + Dual-Track Reasoning Reward（intuition vs reasoning），无监督超越有监督 GRPO
 
 ### Semi-Supervised RLVR
 - [[wiki/papers/yang-2025-trapo|TraPO (Yang et al., 2025)]] — ⭐ 首创半监督 RLVR：trajectory matching 选可靠无标注样本，1K 标注 + 3K 无标注超越 45K 无监督，10% 标注超全量监督
@@ -88,7 +104,7 @@ updated: 2026-04-10
 ## 综合分析 (wiki/synthesis/)
 > 跨论文对比与领域综述
 
-- [[wiki/synthesis/urlvr-landscape|URLVR 领域综述]] — 十篇核心论文多维分类对比，信号来源/打分粒度/Reward 模型/任务类型/Sharpening 理论
+- [[wiki/synthesis/urlvr-landscape|URLVR 领域综述]] — 二十篇核心论文多维分类对比，信号来源/打分粒度/Reward 模型/任务类型/Sharpening 理论
 - [[wiki/synthesis/step-level-se-proposal|Semantic Process Consistency 研究方案]] — 从 SPAE-SE 重构为 SPC：用 step-level semantic rollout consistency 纠正 TTRL 的 outcome-only 信号
 - [[wiki/synthesis/co-evolving-verifier-proposal|Co-Evolving Verifier 研究方案]] — SPC 的第二分支：让 PRM 跟着 RL 训练一起进化，三层自举架构（TTRL anchor → SPC signal → lightweight PRM）
 - [[wiki/synthesis/spc-experiment-plan|SPC 实验设计方案]] — 从 TTRL 环境复现 SPAE 骨架开始，逐步替换 GT correctness，最终落到 SPC 的分阶段实现路线

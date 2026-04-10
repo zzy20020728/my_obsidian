@@ -257,3 +257,37 @@ type: log
 - 合并 wiki/papers/xie-2026-vppo.md 中独有的 SPC 分析（计算开销降低策略、TTRL 双层兼容、SPC 可靠性空间结构、面试频率标签）到 wiki/papers/liu-2025-vppo.md
 - 删除重复文件 wiki/papers/xie-2026-vppo.md（作者前缀错误 xie→应为 zhou，且 liu-2025 版本内容更全面准确）
 - 更新 index.md VPPO 链接：xie-2026-vppo → liu-2025-vppo，修正作者为 Liu et al., 2025
+
+## [2026-04-10] ingest | 10 篇 2026 最新 URLVR 论文批量摄入
+
+通过 arXiv MCP 工具下载 10 篇 2026 年最新论文全文，提取结构化信息并创建 wiki 页面。
+
+### 新建论文页（10 篇）
+
+**URLVR Reward Estimation（改进 TTRL Reward 质量）：**
+- 创建 wiki/papers/du-2026-dual-consensus.md — **DCRL**: 双阶段投票（anchor + unlearned explorer）逃离虚假多数，harmonic mean 共识 + 三级 reward + adaptive sampling，Qwen3-8B Avg 50.9
+- 创建 wiki/papers/du-2026-dare.md — **DARE** (ICML): 分布感知 reward 替代 point-level MV，uncertainty-normalized distribution + exploration bonus，AIME24 +25.3% over TTRL
+- 创建 wiki/papers/liao-2026-t3rl.md — **T³RL**: 工具验证（Python code execution）锚定 TTRL reward，T³RL@N=16 > TTRL@N=64
+
+**RLVR Training Stability（训练稳定性改进）：**
+- 创建 wiki/papers/ma-2026-dcpo.md — **DCPO**: 证明 accuracy-calibration gradient conflict 并解耦优化，ECE -71.6%，AUROC 0.914
+- 创建 wiki/papers/wang-2026-pipo.md — **PIPO**: 暴露 GRPO η(p)→∞ 梯度爆炸缺陷，PIRL 框架 + dual-stage explore-verify
+- 创建 wiki/papers/cui-2026-clipo.md — **CLIPO** (Alibaba Qwen): InfoNCE 对比学习抑制 spurious reasoning，跨 4 种 RL 算法一致提升
+
+**Label-Free / Open-Domain RL：**
+- 创建 wiki/papers/wang-2026-sarl.md — **SARL**: 推理拓扑结构（小世界网络）做 reward，完全 label-free，数学超越 GT RL，WildBench +9.10
+- 创建 wiki/papers/huang-2026-darl.md — **DARL**: 动态多样性 reward 鼓励多样正确路径（需 GT，非纯 URLVR）
+
+**Multimodal Self-Improvement：**
+- 创建 wiki/papers/tan-2026-meta-ttrl.md — **Meta-TTRL**: TTRL 扩展到 T2I，元认知架构 rubric-based 评估，自我内省(7B) > 外部强模型(235B)
+- 创建 wiki/papers/wang-2026-v-zero.md — **V-Zero**: 零标注 VLM Questioner-Solver co-evolution，Dual-Track Reasoning Reward，无监督超越有监督 GRPO
+
+### 索引更新
+- 更新 index.md：新增 4 个论文子分类（URLVR Reward Estimation / RLVR Training Stability / Label-Free Open-Domain RL / Multimodal Self-Improvement），纳入全部 10 篇新论文
+- 论文总数：18 → **28 篇**
+
+### 对 SPC 研究的关键新洞察
+- **Layer 1 anchor 可升级**：DCRL (dual consensus) / DARE (distribution-aware) / T³RL (tool verification) 均可替代 naive MV
+- **GRPO 存在隐患**：PIPO 发现边界梯度爆炸，DCPO 发现 accuracy-calibration conflict → SPC 实验应考虑用 DAPO 替代 GRPO
+- **跨轨迹信号**：CLIPO 的 contrastive learning 直接解决 SPC 问题 #5（缺乏跨轨迹信息）
+- **Co-evolution 可行性验证**：V-Zero 证明 co-evolution 可超越有监督学习，支撑 Co-Evolving Verifier 方案
