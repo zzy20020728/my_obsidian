@@ -218,12 +218,12 @@ $$
 
 ### Exp 2: Co-Evolving vs Frozen Verifier
 
-| 实验组 | Verifier 训练方式 | 校准 |
-|--------|------------------|------|
-| Frozen SPC | 全程用昂贵的 SPC probing | — |
-| Frozen Verifier | 冷启动阶段训练，然后冻结 | 无 |
-| Co-Evolving (fixed) | 冷启动 + 每 N 步校准 | 固定频率 |
-| Co-Evolving (adaptive) | 冷启动 + drift 触发校准 | 自适应 |
+| 实验组                    | Verifier 训练方式      | 校准   |
+| ---------------------- | ------------------ | ---- |
+| Frozen SPC             | 全程用昂贵的 SPC probing | —    |
+| Frozen Verifier        | 冷启动阶段训练，然后冻结       | 无    |
+| Co-Evolving (fixed)    | 冷启动 + 每 N 步校准      | 固定频率 |
+| Co-Evolving (adaptive) | 冷启动 + drift 触发校准   | 自适应  |
 
 评估：
 1. 最终 accuracy（AIME/AMC/MATH500）

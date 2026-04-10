@@ -174,3 +174,86 @@ type: log
   - Layer 3: Lightweight Co-Evolving Verifier（cheap，用 SPC labels 训练，日常替代 probing，被 SPC 周期性校准）
 - 策略建议：首发论文做纯 SPC，Co-Evolving 作为第二篇或 Phase 4 扩展
 - 更新 index.md 索引、step-level-se-proposal.md 交叉引用
+
+## [2026-04-08] synthesis | SPC 实验设计方案
+- 创建 wiki/synthesis/spc-experiment-plan.md
+- 明确整体路线：`TTRL baseline -> SPAE-GT -> SPAE-Pseudo-FF -> Confidence / Step Semantic Entropy -> SPC`
+- 设计原则：先复现 SPAE 工程骨架，再逐步替换 GT correctness，避免一开始直接做最终版 SPC
+- 细化 6 个阶段：环境接入、SPAE-GT 上界、pseudo-label 替换、简单 baseline、SPC 主实验、长期稳定性分析
+- 明确给下一个 agent 的实现优先级、最小实验矩阵、评估指标与常见踩坑点
+- 更新 index.md 索引
+
+## [2026-04-09] project | 简历项目资料与 Agentic RAG 工程重构
+- 创建简历项目文件夹：`wiki/projects/resume/`
+- 创建总览页：`wiki/projects/resume/index.md`
+- 创建项目手册：`wiki/projects/resume/scholarlens-v2-interview-kit.md`
+- 创建项目手册：`wiki/projects/resume/agentic-rag-system-interview-kit.md`
+- 更新 `index.md` 项目索引
+- 对 `D:/VScodeProject/agentic_rag_system` 完成二次工程化重构：
+- 新增 chunk-based ingestion：`agentic_rag/retrieval/chunking.py`、`ingestion.py`
+- 重写 hybrid retrieval：dense + sparse + RRF + Cross-Encoder rerank
+- 将向量模型从英文 MiniLM 升级为 `BAAI/bge-m3`
+- 重写 LangGraph 节点逻辑，改为结构化 `step_type` 工作流
+- 重写 Streamlit UI，统一上传入库链路
+- 补充 README、Dockerfile、config.yaml、main.py、tests
+- 修复懒加载与测试导入问题，`pytest` 通过（4 passed）
+
+## [2026-04-09] interview | 广告搜索算法速成补充
+- 创建面试手册：`wiki/interview/ad-search-algorithms.md`
+- 覆盖广告/搜索算法核心框架：召回、粗排、精排、CTR/CVR/eCPM、GSP/OCPX、多目标优化、偏差与校准
+- 补充如何将现有两个项目映射到广告搜索算法面试表达
+- 更新 `index.md` 面试索引
+
+## [2026-04-09] interview | 广告搜索算法题库与速背材料
+- 创建题库：`wiki/interview/ad-search-algorithms-qa.md`
+- 创建速背版：`wiki/interview/ad-search-algorithms-one-day-cram.md`
+- 补充 50 道广告搜索算法高频问答
+- 补充 1 天突击版标准答法与项目迁移话术
+- 更新 `index.md` 面试索引
+
+## [2026-04-10] interview | Linux 常用命令速查手册
+- 创建面试文档：`wiki/interview/linux-commands.md`
+- 覆盖 13 大类：GPU/显卡监控（nvidia-smi、gpustat、nvtop、CUDA）、内存/CPU 监控（free、htop、vmstat）、进程管理（ps、kill、nohup、tmux/screen）、文件操作、磁盘管理、网络/SSH/SCP、压缩解压、系统信息、Python/Conda 环境管理、文本处理、深度学习实用组合命令、面试 Q&A、快捷键技巧
+- 重点场景：查看谁在用 GPU、远程训练标准流程、OOM 排查、批量杀残留进程
+- 更新 `index.md` 面试索引
+
+## [2026-04-10] ingest | MAE 论文摄入
+- 论文：Multi-Agent Evolve (Chen & Wang et al., 2025, arXiv:2510.23595) — UIUC / PKU / NVIDIA
+- 核心：Proposer-Solver-Judge 三角色从同一 LLM co-evolution，无 GT/外部 verifier，通用领域自进化
+- 创建论文页：wiki/papers/chen-2025-mae.md（完整版：方法/公式/实验表格/Ablation/与 Co-Evolving Verifier 提案对比/Mutual Sharpening 分析）
+- 更新 index.md 索引（新增 "Self-Play / Multi-Agent Co-Evolution" 分类）
+- 与研究的关系：MAE 验证了 co-evolution 可行性，但缺乏外部锚点，Response-level 粒度有天花板，为 SPC step-level 方案提供了差异化定位
+
+## [2026-04-10] ingest | VPPO 论文摄入
+- 论文：VPPO — Save the Good Prefix (Liu et al., 2025, arXiv:2601.18984) — Tencent AI Lab / UVA
+- 核心：PRM 仅做 first error detection，将轨迹划分为 good prefix + erroneous suffix，精准 credit assignment
+- 创建论文页：wiki/papers/liu-2025-vppo.md（完整版：方法/Eq. 6-8 公式/Shorten Prefix/Theorem 1/实验表格/消融/与 SPC 关系分析/面试 Q&A）
+- 更新 index.md 索引（添加到 Step-Level Credit Assignment 分类）
+- 与研究的关系：VPPO 需要 GT + PRM（非 URLVR），但 "first divergence localization" 思想可迁移到 SPC——用 consistency 急剧下降点替代 PRM first error detection
+
+## [2026-04-10] ingest | TraPO 论文摄入
+- 论文：TraPO — A Semi-Supervised RL Framework for Boosting LLM Reasoning (Yang et al., 2025, arXiv:2512.13106) — Zhejiang University / Ant Group
+- 核心：首创半监督 RLVR 范式，用 pass rate trajectory cosine similarity 从标注样本引导无标注样本选择
+- 创建论文页：wiki/papers/yang-2025-trapo.md（完整版：方法/6 个关键公式/训练 pipeline/Table 1-8 实验数据/Scaling Law/超参敏感性/训练成本/稳定性/与 He et al. sharpening 理论的关系/面试 Q&A/与 SPC 研究的潜在结合）
+- 更新 index.md 索引（新建 Semi-Supervised RLVR 分类）
+- 关键数据：1K 标注 + 3K 无标注 → ID Avg 42.6%（超越 45K 无监督的 38.3% +4.3%）；4K + 12K → ID 45.6%/OOD 59.7%（超越 45K 全监督的 45.5%/57.3%）
+- 与研究的关系：TraPO 从实践验证了 sharpening theorem 的局限性，证明少量外部监督即可突破 URLVR 天花板；trajectory matching 思想可与 SPC step-level 方案结合
+
+## [2026-04-10] ingest | ETTRL 论文摄入
+- 论文：ETTRL — Balancing Exploration and Exploitation in LLM Test-Time RL Via Entropy Mechanism (Liu et al., 2025, arXiv:2508.11356) — Kuaishou / Beihang / Northwestern Polytechnical
+- 核心：TTRL 直接改进版，两个组件：(1) ETMR: 高熵 token 位置分叉的 tree rollout，仅需 60% token budget 获得同等 rollout 数且多样性更高；(2) EAR: 相对熵重塑 advantage，低熵高置信响应 advantage 放大，高熵低置信响应 advantage 抑制
+- 创建论文页：wiki/papers/liu-2025-ettrl.md（完整版：方法/公式/Table 1-2/对 SPC 实验的启示）
+- 关键数据：Llama3.1-8B AIME24 +69%（10.0→16.9），Qwen2.5-Math-1.5B +32.9%（15.8→21.0），全部仅需 60% token budget
+- 与研究的关系：ETTRL 可作为 SPC 实验的改进版 TTRL baseline；ETMR 的"高熵 token 决定分叉"洞察可用于 SPC probing；EAR 可缓解 SPC step-level advantage 的 sharpening
+
+## [2026-04-10] ingest | CAPO 论文摄入
+- 论文：CAPO — Towards Enhancing LLM Reasoning through Verifiable Generative Credit Assignment (Xie et al., 2025, arXiv:2508.02298) — Renmin University / Tencent WeChat
+- 核心：用 off-the-shelf 70B LLM 作为生成式 PRM（LLM-as-GenPRM），单次推理生成所有步骤正误判定 + 多次 critique 投票降噪 + 非对称奖励塑形（W_whole > W_process）
+- 创建论文页：wiki/papers/xie-2025-capo.md（完整版：方法/公式/实验表格/Voting 策略/非对称权重 ablation）
+- 关键数据：Qwen2.5-7B AIME24 从 3.6 到 10.8（+200%），Llama-3-3B AMC23 +59%
+- 与研究的关系：CAPO 的非对称奖励塑形（outcome > process）可迁移到 SPC；投票降噪策略对 SPC probing 有参考价值；但依赖外部 70B 模型 + GT answer，非 URLVR
+
+## [2026-04-10] cleanup | VPPO 重复文件清理
+- 合并 wiki/papers/xie-2026-vppo.md 中独有的 SPC 分析（计算开销降低策略、TTRL 双层兼容、SPC 可靠性空间结构、面试频率标签）到 wiki/papers/liu-2025-vppo.md
+- 删除重复文件 wiki/papers/xie-2026-vppo.md（作者前缀错误 xie→应为 zhou，且 liu-2025 版本内容更全面准确）
+- 更新 index.md VPPO 链接：xie-2026-vppo → liu-2025-vppo，修正作者为 Liu et al., 2025
