@@ -291,3 +291,35 @@ type: log
 - **GRPO 存在隐患**：PIPO 发现边界梯度爆炸，DCPO 发现 accuracy-calibration conflict → SPC 实验应考虑用 DAPO 替代 GRPO
 - **跨轨迹信号**：CLIPO 的 contrastive learning 直接解决 SPC 问题 #5（缺乏跨轨迹信息）
 - **Co-evolution 可行性验证**：V-Zero 证明 co-evolution 可超越有监督学习，支撑 Co-Evolving Verifier 方案
+
+## [2026-04-10] synthesis | 基于 10 篇新论文的全面 Synthesis 更新
+
+将 10 篇新论文的洞察系统性地融入所有 4 个综合分析文件。
+
+### urlvr-landscape.md — URLVR 领域综述
+- 从 ~389 行扩展到 ~526 行
+- 新增速览表（22 篇论文概要）
+- 新增维度六：TTRL 改进方法对比（DCRL / DARE / T³RL / ETTRL 四列详细对比）
+- 新增 4 个性能对比子表（Qwen2.5-7B / Qwen2.5-Math-7B / Llama-3.1-8B / Qwen3-8B）
+- 新增 4 条核心发现：GRPO 梯度缺陷、外部工具验证有效性、小世界网络 reward、多模态自进化
+- 新增 4 大演化分支谱系图（Reward Estimation / Training Stability / Label-Free / Multimodal）
+- 新增 2 个开放问题、3 道面试题
+
+### step-level-se-proposal.md — SPC 研究方案
+- 从 ~531 行扩展到 ~642 行
+- 新增"2026 年新论文对 SPC 方案的系统性启发"大章节（7 个子节）
+- A1-A8 综合设计调整建议表：涵盖 Layer 1 升级路径、GRPO→DAPO 切换、CLIPO contrastive 集成、DCPO 梯度解耦、SARL 结构信号互补等
+- Positioning 追加 5 条新对比项（DCRL / DARE / PIPO / CLIPO / SARL 与 SPC 的差异化定位）
+
+### co-evolving-verifier-proposal.md — Co-Evolving Verifier 方案
+- 从 ~261 行扩展到 ~286 行
+- 文献调研新增 V-Zero 和 Meta-TTRL
+- 关键发现新增 2 条（co-evolution > supervised、self-introspection > external 235B）
+- 新增"新论文对 Mutual Sharpening 风险的缓解"章节（3 项策略：DCRL diversity、CLIPO contrastive、DARE pruning）
+- Positioning 追加 2 条、风险评估追加第 4 条（GRPO 梯度爆炸风险）
+
+### spc-experiment-plan.md — SPC 实验设计
+- 新增"基于 2026 新论文的实验设计修订"大章节
+- 5 项关键修订：(1) GRPO→DAPO 基础优化器、(2) CLIPO augmentation 集成、(3) Layer 1 DCRL/DARE 升级实验、(4) DCPO 梯度解耦消融、(5) CLIPO contrastive 对比组
+- 更新版最小实验矩阵（8 组，含新 baseline 和 augmentation 变体）
+- 3 个新坑提醒（DAPO 超参、contrastive batch size、dual consensus 成本）

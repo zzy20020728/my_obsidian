@@ -1,10 +1,10 @@
 ---
 title: "Co-Evolving Verifier: 让 PRM 跟着 RL 训练一起进化"
 type: synthesis
-tags: [co-evolving, PRM, URLVR, SPC, bootstrapping, self-improving, reward-model, research-proposal]
+tags: [co-evolving, PRM, URLVR, SPC, bootstrapping, self-improving, reward-model, research-proposal, V-Zero, Meta-TTRL, DCRL, DARE, metacognitive-synergy, capacity-matched]
 created: 2026-04-08
-updated: 2026-04-08
-sources: [wiki/synthesis/step-level-se-proposal.md, wiki/papers/rahman-2025-spark.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/he-2026-urlvr-scale.md, wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2025-covo.md]
+updated: 2026-04-10
+sources: [wiki/synthesis/step-level-se-proposal.md, wiki/papers/rahman-2025-spark.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/he-2026-urlvr-scale.md, wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2025-covo.md, wiki/papers/wang-2026-v-zero.md, wiki/papers/tan-2026-meta-ttrl.md, wiki/papers/du-2026-dual-consensus.md, wiki/papers/du-2026-dare.md, wiki/papers/cui-2026-clipo.md]
 status: draft
 ---
 
@@ -49,6 +49,8 @@ SPARK (Rahman et al.) 自己也发现了这个问题——直接用 self-consist
 | **Sci-CoE (He et al., 2026/02)** arXiv:2602.12164 | 两阶段 co-evolving：Stage 1 用少量标注数据建 verifier anchor；Stage 2 用 geometric consensus（一致性 + 可靠性 + 多样性）驱动自迭代。Solver 和 Verifier 一起进化。 | **Sparse supervision**（少量标注） | 较近 |
 | **Self-Judge (Wu et al., 2026)** 已读 | Actor 和 Judge 分离但都来自同一模型。Judge frozen。 | 否 | 近，但 Judge 不进化 |
 | **SPARK (Rahman et al., 2025)** 已读 | 自训练 PRM 但冻结使用。 | PRM 训练时用 self-consistency | 近，但 PRM 不进化 |
+| **V-Zero (Wang et al., 2026/01)** arXiv:2601.10094 | Questioner-Solver co-evolution。Questioner 生成 MCQ + intuitive answer，Solver 用 CoT 推理 + MV 获得 pseudo-label，Dual-Track Reward 对比 intuition vs reasoning。 | **否** — 完全无标注 | **非常近** — 纯 URLVR co-evolution |
+| **Meta-TTRL (Tan et al., 2026/03)** arXiv:2603.15724 | TTRL 扩展到 T2I。元认知架构（生成器+内省器），rubric-based 二值评估 → 几何平均聚合 reward。 | **否** — 自我评估 | 中等 — T2I 领域，但 metacognitive synergy 发现高度相关 |
 
 ### 关键发现
 
@@ -56,6 +58,8 @@ SPARK (Rahman et al.) 自己也发现了这个问题——直接用 self-consist
 2. **Sci-CoE** 最接近 URLVR 设定，用 sparse supervision → unsupervised 过渡。其 geometric consensus 机制值得借鉴。
 3. **rePIRL** 在数学上最优雅（IRL 框架），但需要 expert demonstrations。
 4. **纯 URLVR 下的 co-evolving PRM 目前没有人做过。** 这是一个空白。
+5. **V-Zero 是纯 URLVR 下 co-evolution 的最强证据**。它证明了两个关键点：(a) 完全无标注的 co-evolution 可以超越有监督 GRPO（51.9 vs 50.8）；(b) Dual-Track Reward 提供了一种非 GT 的 reward 信号替代方案。V-Zero 的 Questioner-Solver 架构与我们的 SPC-PRM co-evolving 方案高度类似——Questioner 类似 SPC（提供评估信号），Solver 类似 Policy。
+6. **Meta-TTRL 的 Metacognitive Synergy 发现**：自我内省（7B）产生的 reward 信号优于外部强模型（235B GPT-4o/Gemini）。这为 SPC 的 probing-based self-evaluation 路线提供了理论支撑——capacity-matched signals 比 absolute evaluator strength 更有效。如果自评估信号天然匹配模型当前能力，那么 SPC-anchored Co-Evolving Verifier 作为自评估的加速版本，理论上也应优于外部冻结 PRM。
 
 ## 核心挑战：Mutual Sharpening
 
@@ -74,6 +78,16 @@ SPARK (Rahman et al.) 自己也发现了这个问题——直接用 self-consist
 因为它有 **verifiable reward 作为硬锚点**。即使 policy 和 reward model 互相迎合，代码执行 / 数学答案验证 / Lean proof checker 会把真实 correctness 信号注入进来，阻止 mutual drift。
 
 在 URLVR 设定下，我们没有这个硬锚点。所以需要替代方案。
+
+### 新论文对 Mutual Sharpening 风险的缓解
+
+三篇新论文为缓解 mutual sharpening 提供了新工具：
+
+1. **DCRL/DARE 升级 Layer 1 Anchor**：如果将 Layer 1 的 naive majority voting 升级为 [[wiki/papers/du-2026-dual-consensus|DCRL]] 的 dual consensus 或 [[wiki/papers/du-2026-dare|DARE]] 的 distribution-aware estimation，Layer 1 的 outcome anchor 本身更可靠。更可靠的 anchor 意味着 SPC 校准信号也更可靠（因为 SPC 的 a_final 来源于 outcome anchor），从而减少 mutual sharpening 的起点误差。
+
+2. **CLIPO Contrastive Regularization**：[[wiki/papers/cui-2026-clipo|CLIPO]] 的 InfoNCE 对比学习可以作为 co-evolving 过程中的额外正则化——强制正确推理在表示空间中聚拢，防止 policy 和 verifier 在 spurious reasoning 上达成"虚假共识"。
+
+3. **V-Zero 的 Ambiguity Reward**：V-Zero 在 consistency case 给 ambiguity reward（$\min(c, 1-c)$），主动抑制过度 sharpening。Co-Evolving Verifier 可以借鉴：当 SPC 和 Verifier 的判断高度一致时（可能已经 sharpened），降低 reward 信号强度；当两者分歧时（真正需要校准的区间），增大信号。
 
 ## 方案：SPC-Anchored Co-Evolving Verifier
 
@@ -207,6 +221,15 @@ $$
 2. 周期性 SPC 校准会暴露 Verifier 的 systematic bias
 3. 参考 [[wiki/papers/ghimire-2026-prism|PRISM]] 的经验：min aggregation 比 mean aggregation 更抗 hack
 
+### 风险 4: V-Zero 式 co-evolution 可能需要 Questioner 角色
+
+**描述**：V-Zero 的成功部分归因于 Questioner 动态调整题目难度，形成 curriculum learning 效果。我们的方案中 SPC 只做评估，没有"出题"角色——可能缺少 curriculum 信号。
+
+**缓解**：
+1. SPC 本身有隐含的 curriculum 效果——随着 policy 变强，SPC 在简单题上持续给高分（减少信号），在难题上仍有区分度
+2. 可以引入 DCRL 的 Dynamic Sampling 思路——优先采样 SPC 和 Verifier 分歧大的"困难"样本进行校准
+3. 如果资源允许，可以考虑增加 Questioner 模块作为第四层
+
 ## 实验设计（如果独立成文）
 
 ### Exp 1: SPC vs Verifier 的信号质量对比
@@ -259,3 +282,5 @@ $$
 - vs **rePIRL (Wu et al., 2602.07832)**：rePIRL 用 IRL 框架需要 expert demonstrations；我们完全无监督。
 - vs **Sci-CoE (He et al., 2602.12164)**：Sci-CoE 需要 sparse supervision 建 verifier anchor；我们用 SPC 作为 anchor，不需要任何标注。
 - vs [[wiki/papers/ghimire-2026-prism|PRISM]]：PRISM 混合冻结 PRM + self-certainty；我们让 PRM 动态进化，且用语义 rollout consistency 替代 self-certainty。
+- vs **V-Zero (Wang et al., 2601.10094)**：V-Zero 的 Questioner-Solver co-evolution 与我们的 SPC-Verifier co-evolution 架构相似，但 V-Zero 用 Dual-Track Reward（intuition vs reasoning），我们用 SPC（semantic rollout consistency）做校准信号。V-Zero 在 VLM 上验证 co-evolution 超越有监督，为我们的方案提供了跨模态的信心。
+- vs **Meta-TTRL (Tan et al., 2603.15724)**：Meta-TTRL 的 Metacognitive Synergy（自评估 > 外部强评估）直接支持 SPC-anchored 自评估路线。我们的 Co-Evolving Verifier 本质上是 capacity-matched 的自评估加速器。

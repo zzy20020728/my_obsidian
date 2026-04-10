@@ -1,10 +1,10 @@
 ---
 title: URLVR 领域综述：无监督/无参考强化学习推理
 type: synthesis
-tags: [URLVR, 综述, 对比分析, reward-signal, PRM, self-consistency, RAG, sharpening, MCS, failure-modes, external-reward, CoVo, consistency, volatility]
+tags: [URLVR, 综述, 对比分析, reward-signal, PRM, self-consistency, RAG, sharpening, MCS, failure-modes, external-reward, CoVo, consistency, volatility, dual-consensus, distribution-aware, tool-verification, calibration, contrastive-learning, GRPO-flaw, small-world, diversity, metacognition, co-evolution]
 created: 2026-04-07
-updated: 2026-04-08
-sources: [wiki/papers/zuo-2025-ttrl.md, wiki/papers/zhang-2025-empo.md, wiki/papers/zhang-2025-covo.md, wiki/papers/rahman-2025-spark.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/wu-2026-self-judge.md, wiki/papers/royer-2026-mcnig.md, wiki/papers/wang-2026-prorag.md, wiki/papers/tan-2026-ctrl-rag.md, wiki/papers/he-2026-urlvr-scale.md, wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2026-grad2reward.md]
+updated: 2026-04-10
+sources: [wiki/papers/zuo-2025-ttrl.md, wiki/papers/zhang-2025-empo.md, wiki/papers/zhang-2025-covo.md, wiki/papers/rahman-2025-spark.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/wu-2026-self-judge.md, wiki/papers/royer-2026-mcnig.md, wiki/papers/wang-2026-prorag.md, wiki/papers/tan-2026-ctrl-rag.md, wiki/papers/he-2026-urlvr-scale.md, wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2026-grad2reward.md, wiki/papers/du-2026-dual-consensus.md, wiki/papers/du-2026-dare.md, wiki/papers/liao-2026-t3rl.md, wiki/papers/ma-2026-dcpo.md, wiki/papers/cui-2026-clipo.md, wiki/papers/wang-2026-pipo.md, wiki/papers/wang-2026-sarl.md, wiki/papers/huang-2026-darl.md, wiki/papers/tan-2026-meta-ttrl.md, wiki/papers/wang-2026-v-zero.md]
 status: active
 ---
 
@@ -16,7 +16,7 @@ status: active
 
 **核心挑战**：标准 RLVR（如 DeepSeek-R1）依赖 ground-truth 做 rule-based verification，但大量实际场景（开放域推理、多模态推理、RAG、复杂任务）无法获取标注。如何在没有标注的情况下构建可靠的训练信号？
 
-## 十篇核心论文速览
+## 二十二篇核心论文速览
 
 | 论文 | 机构 | 核心方法 | Reward 来源 | 任务 | 年份 |
 |------|------|----------|-------------|------|------|
@@ -30,6 +30,18 @@ status: active
 | [[wiki/papers/wang-2026-prorag\|ProRAG]] | Renmin University | 四阶段 RAG RL + MCTS PRM | 混合（PRM + outcome F1） | Multi-hop QA | 2026 |
 | [[wiki/papers/tan-2026-ctrl-rag\|CTRL-RAG]] | Ant Group | Contrastive Likelihood Reward | 混合（CLR + accuracy） | RAG Faithfulness | 2026 |
 | [[wiki/papers/he-2026-urlvr-scale\|How Far URLVR Scale?]] | Tsinghua | 统一分析 + sharpening 理论 | 综合分析（intrinsic vs external） | 综合 | 2026 (ICLR) |
+| [[wiki/papers/wu-2026-spae\|SPAE]] | — | Confidence + Correctness reward | 混合（certainty + GT） | 数学推理 | 2026 |
+| [[wiki/papers/zhang-2026-grad2reward\|Grad2Reward]] | — | Gradient attribution self-judging | 半外部（frozen copy） | 数学推理 | 2026 |
+| [[wiki/papers/du-2026-dual-consensus\|DCRL]] | Beihang | Anchor-Explorer dual consensus + harmonic mean | 纯内部（dual-view consensus） | 数学/通用推理 | 2026 |
+| [[wiki/papers/du-2026-dare\|DARE]] | — | Uncertainty-normalized distribution reward | 纯内部（distribution-aware） | 数学推理 | 2026 (ICML) |
+| [[wiki/papers/liao-2026-t3rl\|T³RL]] | LMU Munich + Stanford | Code execution verification + weighted MV | 混合（tool verification + MV） | 数学推理 | 2026 |
+| [[wiki/papers/ma-2026-dcpo\|DCPO]] | CAS | Masked gradient decoupling accuracy vs calibration | N/A（训练方法，非 reward） | 数学推理 | 2026 |
+| [[wiki/papers/cui-2026-clipo\|CLIPO]] | Alibaba Qwen | InfoNCE contrastive on successful rollouts | 辅助信号（contrastive regularization） | 数学推理 | 2026 |
+| [[wiki/papers/wang-2026-pipo\|PIPO]] | Beihang + PKU | PIRL framework + dual-stage explore-verify | N/A（优化框架改进） | 数学推理 | 2026 |
+| [[wiki/papers/wang-2026-sarl\|SARL]] | Purdue | Small-world network topology reward | 纯内部（结构化 reward） | 数学 + 开放域 | 2026 |
+| [[wiki/papers/huang-2026-darl\|DARL]] | 厦门大学 + Kuaishou | Dynamic diversity reward | 需要 GT（diversity bonus） | 通用推理 | 2026 |
+| [[wiki/papers/tan-2026-meta-ttrl\|Meta-TTRL]] | — | Metacognitive rubric-based T2I reward | 纯内部（self-introspection） | T2I 生成 | 2026 |
+| [[wiki/papers/wang-2026-v-zero\|V-Zero]] | Zhejiang U | Questioner-Solver co-evolution + Dual-Track Reward | 纯内部（intuition vs reasoning） | 多模态 VLM 推理 | 2026 |
 
 ---
 
@@ -42,24 +54,34 @@ status: active
     │      │      │         │    │    │               │      │
   TTRL    EMPO   CoVo     PRISM  S-J  CTRL-RAG       SPARK  MCNIG
 (maj vote)(sem ent)(Con+Vol)(PRM+SC)(SC+J)(CLR+acc)  (PRM)  (PRM)
-                            ProRAG
-                         (PRM+F1)
+  DCRL    DARE   SARL      ProRAG  T³RL
+(dual-view)(dist)(topology)(PRM+F1)(tool+MV)
+ Meta-TTRL V-Zero
+(self-intro)(co-evo)
+
+ 优化框架改进 ──────────── 需要 GT ──────────
+    │      │      │            │
+  DCPO   PIPO   CLIPO        DARL
+(grad decouple)(PIRL)(InfoNCE)(diversity)
 ```
 
 | 类型 | 代表 | 优势 | 劣势 |
 |------|------|------|------|
-| **纯内部** | TTRL, EMPO, CoVo | 无需任何外部模型，完全自主 | TTRL: 无 step-level credit；EMPO: 长期训练 [[reward-hacking\|reward hack]]；CoVo: 更强的过程信号但底层仍是 likelihood consistency；本质都受 sharpening 风险约束 |
-| **混合** | PRISM, Self-Judge, ProRAG, CTRL-RAG | 互补信号，更稳健 | 需要调节多信号权重（γ, β 等超参） |
+| **纯内部** | TTRL, EMPO, CoVo, DCRL, DARE, SARL, Meta-TTRL, V-Zero | 无需任何外部模型，完全自主 | TTRL: 无 step-level credit；EMPO: 长期训练 [[reward-hacking\|reward hack]]；CoVo: 更强的过程信号但底层仍是 likelihood consistency；本质都受 sharpening 风险约束 |
+| **混合** | PRISM, Self-Judge, ProRAG, CTRL-RAG, T³RL | 互补信号，更稳健 | 需要调节多信号权重（γ, β 等超参），T³RL 需要 code interpreter |
 | **纯外部** | SPARK, MCNIG | 最稳定（stationary reward） | 需要额外训练 PRM，计算成本高 |
+| **优化框架改进** | DCPO, PIPO, CLIPO | 从优化层面提升训练稳定性和效果 | 不直接改进 reward 信号，而是改进如何利用信号 |
+| **需要 GT** | DARL | 多样性 bonus 有效 | 非纯 URLVR，需要 ground-truth |
 
 ### 维度二：按打分粒度
 
 | 粒度 | 论文 | 描述 |
 |------|------|------|
-| **答案级 (Outcome-level)** | TTRL, EMPO, Self-Judge, CTRL-RAG | 只评估最终答案的质量/一致性/忠实度 |
+| **答案级 (Outcome-level)** | TTRL, EMPO, Self-Judge, CTRL-RAG, DCRL, DARE, T³RL, SARL, DARL, V-Zero | 只评估最终答案的质量/一致性/忠实度 |
 | **轨迹级过程感知 (Trajectory-level)** | CoVo | 看中间状态是否持续支持最终答案，但 reward 仍落在整条轨迹上 |
 | **步骤级 (Step-level)** | SPARK, PRISM, MCNIG | 评估每个推理步骤的正确性 |
 | **双粒度 (Dual-granularity)** | ProRAG, [[wiki/synthesis/step-level-se-proposal\|SPC 提案]] | 同时使用 outcome + step-level 信号 |
+| **训练稳定性改进** | DCPO, PIPO, CLIPO | 不直接改进 reward 粒度，而是从优化层面改进训练过程：DCPO 解耦 accuracy/calibration 梯度，PIPO 修复 GRPO 梯度爆炸，CLIPO 通过 contrastive learning 抑制 spurious reasoning |
 
 ### 维度三：按 PRM 训练数据生成方式
 
@@ -95,6 +117,28 @@ status: active
 | MCNIG | — (仅 best-of-K) | 未集成到 RL |
 | ProRAG | 标准 GRPO | A^out + β·A^proc（dual-granularity） |
 | CTRL-RAG | 标准 GRPO | R_CLR × R_acc（multiplicative gating） |
+| DCRL | GRPO + 三级 reward | Harmonic mean consensus |
+| DARE | GRPO | Distribution-aware reward (uncertainty-normalized) |
+| T³RL | GRPO | Verification-weighted majority voting |
+| DCPO | GRPO + masked gradient | Decoupled reasoning vs confidence gradients |
+| CLIPO | GRPO/DAPO/Dr.GRPO/PRIME | InfoNCE reward augmentation |
+| PIPO | GRPO/GSPO/DAPO + PIRL | Policy Improvement Reward (explore-verify) |
+| SARL | GRPO (algorithm-agnostic) | Small-world topology SR(G) |
+| DARL | GRPO | Dynamic diversity reward |
+| Meta-TTRL | GRPO | Rubric-based geometric mean |
+| V-Zero | GRPO | Dual-Track intuition-reasoning |
+
+### 维度六：TTRL Reward 改进方法对比
+
+| 方法 | 改进维度 | 核心机制 | 是否需要外部资源 | AIME24 提升 |
+|------|----------|----------|-----------------|------------|
+| TTRL (baseline) | — | Naive majority voting | 否 | — |
+| DCRL | 投票机制 | Dual consensus (anchor+explorer) | 否 | +15.1% |
+| DARE | Reward 计算 | Uncertainty-normalized distribution | 否 | +25.3% |
+| T³RL | Reward 锚定 | Code execution verification | 是（code interpreter） | +31.6% |
+| ETTRL | 采样策略 | 高熵 token 分叉采样 | 否 | 已有数据 |
+
+**设计空间分析**：三种改进方式正交——可以先用 DCRL 改进投票机制，再用 DARE 改进 reward 计算方式，最后用 T³RL 引入外部验证锚定。理论上三者可以叠加使用。
 
 ---
 
@@ -231,9 +275,39 @@ Self-Verification 实验（Countdown 任务）：
 
 ### 关键发现
 - 最好的 URLVR 方法已经**达到甚至超过 ground-truth RLVR** 的效果（数学推理）
-- CoVo 说明即使不训练 PRM，只要 reward 里显式建模“过程是否支持答案”，也能显著超过纯 outcome-level intrinsic 方法
+- CoVo 说明即使不训练 PRM，只要 reward 里显式建模"过程是否支持答案"，也能显著超过纯 outcome-level intrinsic 方法
 - RAG 任务上，process supervision（ProRAG）和 faithfulness reward（CTRL-RAG）都大幅提升基线
 - MCNIG 的 PRM 在 best-of-K 上超过所有基线，且计算成本最低
+
+### TTRL 改进方法对比（Qwen2.5-Math-1.5B）
+
+| 方法 | AIME24 相对提升 | Avg | 核心改进 |
+|------|:--------------:|:---:|----------|
+| TTRL | baseline | 41.5 | — |
+| DARE | +25.3% | 44.2 | Distribution-aware reward |
+| T³RL | +31.6% | 48.8 | Tool verification |
+
+### 优化框架改进（GRPO 系列）
+
+| 方法 | 代表结果 | 核心发现 |
+|------|----------|----------|
+| PIPO | GSPO AIME25 +7.4%, DAPO 4B Avg 51.9 | GRPO η(p) gradient explosion |
+| DCPO | ECE -71.6%, AUROC 0.914 | Accuracy-calibration gradient conflict |
+| CLIPO | 跨 4 种 RL 算法一致提升 +1-2 avg | Contrastive learning 抑制 spurious reasoning |
+
+### Label-Free / 开放域
+
+| 方法 | 数学 Avg 变化 | 开放域变化 | 核心 |
+|------|:---:|:---:|------|
+| SARL | +7.65 (超 GT RL +7.15) | WildBench +9.10 | Small-world topology |
+| EMPO | +~5.0 | -0.71 (退化) | Semantic entropy |
+
+### 多模态自进化
+
+| 方法 | 核心发现 | Base Model |
+|------|----------|------------|
+| Meta-TTRL | Self-introspection 7B > External 235B | Janus-Pro-7B |
+| V-Zero | Unsupervised 51.9 > Supervised GRPO 50.8 | Qwen2.5-VL-7B |
 
 ---
 
@@ -271,10 +345,27 @@ PRISM 的 PRM+SC，Self-Judge 的 SC+Judge，ProRAG 的 outcome+process，CTRL-R
 
 7 篇（除 MCNIG 仅做 best-of-K）都用 [[grpo|GRPO]]，说明它在 LLM RL 中的主导地位。
 
+> **但 GRPO 存在已知缺陷**：PIPO 严格证明 group-relative normalization 引入 η(p) ∝ 1/[p(1-p)]，在 p→0 或 p→1 时梯度爆炸→mode collapse。DCPO 进一步发现 accuracy 和 calibration 目标存在 fundamental gradient conflict。建议考虑 DAPO 或 PIPO 的 PIRL 替代框架。
+
 ### 7. PRM 训练数据可以自动生成
 **共识度**: ⭐⭐⭐⭐（SPARK, MCNIG, ProRAG 共同验证）
 
 三种不同的自动标注方案（self-consistency、信息论、MCTS+contrastive）都证明合成 PRM 数据质量足够高，甚至超过 ground-truth 标注。
+
+### 8. Contrastive Learning 为 RLVR 提供跨轨迹结构信号
+**共识度**: ⭐⭐⭐（CLIPO 单独验证，但跨 4 种算法一致有效）
+
+CLIPO 证明正确 rollout 之间的 contrastive learning 能抑制 spurious reasoning（答案对但推理错），与 outcome reward 正交互补。
+
+### 9. 推理结构 reward 可超越 GT RL
+**共识度**: ⭐⭐⭐（SARL 单篇验证，但结果令人信服）
+
+SARL 证明完全不看答案对错、只看推理链拓扑结构（small-world network）的 reward，在数学任务上竟超越使用 GT 的标准 GRPO。这为 process-level reward 的价值提供了最强证据。
+
+### 10. 自我评估可优于外部强评估（Metacognitive Synergy）
+**共识度**: ⭐⭐⭐（Meta-TTRL + V-Zero 两篇验证）
+
+Meta-TTRL 发现 7B 自我内省 > 235B 外部评估。V-Zero 发现无监督 co-evolution > 有监督 GRPO。共同指向：capacity-matched signals > absolute evaluator strength。
 
 ---
 
@@ -314,6 +405,37 @@ RAG + RL
     │
     └── Contrastive Likelihood ──→ CTRL-RAG (轻量 faithfulness reward)
                                     └── 无需额外模型的 RAG reward
+
+TTRL Reward 改进方向
+    │
+    ├── 统计分布改进 ──→ DARE (Distribution-Aware, ICML)
+    │                     └── Theorem 2.1 Information Collapse
+    │
+    ├── 多视角共识 ──→ DCRL (Dual Consensus)
+    │                   └── Anchor-Explorer + Harmonic Mean
+    │
+    └── 外部工具锚定 ──→ T³RL (Code Execution Verification)
+                          └── N=16 > TTRL N=64
+
+优化框架改进
+    │
+    ├── 梯度爆炸修复 ──→ PIPO (η(p) → ∞ 发现 + PIRL)
+    │
+    ├── 梯度冲突解耦 ──→ DCPO (Accuracy vs Calibration)
+    │
+    └── 跨轨迹正则化 ──→ CLIPO (InfoNCE Contrastive)
+
+Label-Free Process Reward
+    │
+    ├── 拓扑结构 ──→ SARL (Small-World Network)
+    │
+    └── 语义一致性 ──→ SPC (Semantic Process Consistency)
+
+多模态自进化
+    │
+    ├── T2I 元认知 ──→ Meta-TTRL (Rubric Decomposition)
+    │
+    └── VLM Co-Evolution ──→ V-Zero (Questioner-Solver)
 ```
 
 ---
@@ -372,6 +494,12 @@ MCNIG 目前仅做 best-of-K reranking。如果用 MCNIG 训练的 PRM 做 RL re
 ### 7. Reward Hacking 的根本解决
 当前方案都是缓解而非根本解决。是否存在理论上不可 hack 的 reward 构建方式？
 
+### 8. GRPO 的系统性替代
+PIPO 和 DCPO 分别揭露了 GRPO 的梯度爆炸和梯度冲突。DAPO 已部分缓解（Dynamic Sampling 过滤全对/全错 groups），但是否需要更根本性的替代框架？PIPO 的 PIRL（累积改进优化）是一个方向。
+
+### 9. 推理结构 reward 的上限
+SARL 证明拓扑 reward 在数学上可超越 GT RL，但此结论的普适性尚需验证。是否存在"最优推理拓扑"？不同任务的最优拓扑是否不同？
+
 ---
 
 ## 面试综合题
@@ -387,3 +515,12 @@ MCNIG 目前仅做 best-of-K reranking。如果用 MCNIG 训练的 PRM 做 RL re
 
 - Q: RAG 任务上的 RL 有哪些方法？各自优缺点？🔴
 - A: 两种代表方案：(1) **ProRAG**——四阶段 pipeline（SFT → MCTS PRM → RFT → Process-Supervised RL），dual-granularity advantage，效果最好但最重；(2) **CTRL-RAG**——contrastive likelihood reward（有/无文档的 log-likelihood 对比），轻量无需额外模型，重点关注 faithfulness。ProRAG 提供 step-level 精细信号，CTRL-RAG 提供 outcome-level 的 faithfulness 信号。资源充足选 ProRAG，轻量部署选 CTRL-RAG，两者可以结合。
+
+- Q: 对比三种改进 TTRL reward 的方法（DCRL / DARE / T³RL）。🔴
+- A: 三种方法在不同维度改进 TTRL 的 majority voting：(1) **DCRL** 改进投票机制——通过 unlearning 构造 explorer 引入第二视角，用 harmonic mean 选取 pseudo-label，解决 spurious majority；(2) **DARE** 改进 reward 计算——用 uncertainty-normalized distribution 替代 hard voting，保留分布信息，AIME24 +25.3%；(3) **T³RL** 引入外部锚定——用 code execution 验证 rollout，verified 答案获 5x 权重，属于 external reward，AIME24 +31.6%。三者正交可叠加。
+
+- Q: GRPO 有哪些已知的数学缺陷？如何解决？🔴
+- A: 两大缺陷：(1) **PIPO 发现梯度爆炸**——group-relative normalization 引入 η(p) ∝ 1/[p(1-p)]，当 p→0(全错) 或 p→1(全对) 时梯度发散→mode collapse。解决方案：PIRL 框架（优化累积改进而非绝对 reward）或 DAPO（Dynamic Sampling 过滤极端 groups）。(2) **DCPO 发现梯度冲突**——accuracy 和 calibration 在 Fisher 信息度量下梯度内积<0，同时优化必然矛盾。解决方案：masked gradient 将 reasoning tokens 和 confidence tokens 的优化解耦。
+
+- Q: 有哪些证据表明模型自评估可以优于外部强评估？🟡
+- A: 两篇论文提供了证据：(1) **Meta-TTRL** 发现 7B 模型自我内省产生的 T2I reward 信号比 235B 外部模型（GPT-4o/Gemini）更有效——这是 "Metacognitive Synergy" 效应，capacity-matched signals 比 absolute evaluator strength 更重要；(2) **V-Zero** 发现无监督 Questioner-Solver co-evolution 的 VLM 推理性能 (51.9) 超越有监督 GRPO (50.8)。启示：自评估信号天然匹配模型当前能力水平。

@@ -1,10 +1,10 @@
 ---
 title: "SPC 实验设计方案：从 TTRL 环境复现 SPAE 到无监督步骤级奖励"
 type: synthesis
-tags: [SPC, experiment-plan, TTRL, SPAE, URLVR, step-level, reward-shaping, implementation-guide]
+tags: [SPC, experiment-plan, TTRL, SPAE, URLVR, step-level, reward-shaping, implementation-guide, PIPO, DCPO, DARE, CLIPO, DAPO, gradient-conflict, contrastive-learning]
 created: 2026-04-08
-updated: 2026-04-08
-sources: [wiki/synthesis/step-level-se-proposal.md, wiki/papers/wu-2026-spae.md, wiki/papers/zuo-2025-ttrl.md, wiki/papers/zhang-2025-covo.md, wiki/papers/he-2026-urlvr-scale.md]
+updated: 2026-04-10
+sources: [wiki/synthesis/step-level-se-proposal.md, wiki/papers/wu-2026-spae.md, wiki/papers/zuo-2025-ttrl.md, wiki/papers/zhang-2025-covo.md, wiki/papers/he-2026-urlvr-scale.md, wiki/papers/wang-2026-pipo.md, wiki/papers/ma-2026-dcpo.md, wiki/papers/du-2026-dare.md, wiki/papers/cui-2026-clipo.md, wiki/papers/du-2026-dual-consensus.md, wiki/papers/liao-2026-t3rl.md, wiki/papers/wang-2026-sarl.md]
 status: active
 ---
 
@@ -503,3 +503,133 @@ status: active
 ## 一句话执行建议
 
 > 下一个 agent 不要直接实现最终版 SPC。先用现有 TTRL 环境做出 `SPAE-GT -> SPAE-Pseudo-FF -> Confidence / Step-SE -> SPC-only` 这条渐进路线，每一步都保留日志、可视化和小规模 sanity check。
+
+## 基于 2026 新论文的实验设计修订
+
+> 2026 年 1-4 月发表的新论文揭露了 GRPO 的系统性缺陷、提供了更可靠的 TTRL anchor、以及新的信号集成方式。以下修订直接影响 SPC 实验的设计选择。
+
+### 修订 1：优化框架从 GRPO 切换到 DAPO
+
+**依据**：[[wiki/papers/wang-2026-pipo|PIPO]] (arXiv:2604.00860) 严格证明 GRPO 的 group-relative normalization 引入 gradient scaling factor η(p) ∝ 1/[p(1-p)]，在 p→0（全错组）或 p→1（全对组）时梯度爆炸→mode collapse。
+
+**对 SPC 的具体影响**：
+- SPC 的 step-level shaping reward 在 GRPO 下会被 η(p) 放大——hard queries 的 step signal 噪声会被无限放大
+- 数学推理训练中必然存在 hard queries（p→0），GRPO 在这些 query 上的梯度信号不可靠
+
+**修订建议**：
+- 主实验全部使用 DAPO（已有 Dynamic Sampling 过滤全对/全错 groups）
+- 保留一组 GRPO 作为对照，但不作为主要结论的基础
+- 如果观察到训练不稳定，检查是否是 η(p) boundary explosion 导致
+
+**实验矩阵更新**：
+
+| 优先级 | 实验组 | 优化框架 | 目的 |
+|--------|--------|----------|------|
+| P0 | TTRL (DAPO) | DAPO | 主 baseline |
+| P0-alt | TTRL (GRPO) | GRPO | GRPO 对照 |
+| P1 | TTRL + SPAE-GT (DAPO) | DAPO | 工程上界 |
+| P2 | TTRL + SPAE-Pseudo-FF (DAPO) | DAPO | 第一版无监督 |
+| P3 | TTRL + Confidence-only (DAPO) | DAPO | 最简 baseline |
+| P4 | TTRL + Step SE (DAPO) | DAPO | 旧思路 baseline |
+| P5 | TTRL + SPC-only (DAPO) | DAPO | 主方法 |
+| P6 | TTRL + SPC + CLIPO contrastive (DAPO) | DAPO | 跨轨迹信号对比 |
+
+### 修订 2：SPC 信号集成方式——Augmentation 而非替换
+
+**依据**：[[wiki/papers/cui-2026-clipo|CLIPO]] (arXiv:2603.10101) 的 reward augmentation 设计证明，将 process signal 作为 reward 调整项（而非替换 outcome reward）更稳定：
+
+$$r'_i = r_i + \max(-\lambda \cdot \mathcal{L}_{CL}, -0.5)$$
+
+**修订建议**：SPC 的 step-level reward 也应采用 augmentation 方式集成：
+
+$$r'_i = r_{TTRL} + \alpha \cdot \max(\Phi_{SPC}, \text{lower\_bound})$$
+
+而非之前计划的：
+
+$$\hat{A}_{i,j} = \hat{A}^{Group}_i \cdot f(\Phi_{SPC}) + \xi \cdot g(\Delta \Phi_{SPC})$$
+
+**好处**：
+1. 保持 TTRL outcome reward 的主导地位，SPC 只做 bonus/penalty 调整
+2. lower_bound 防止 SPC 信号过大导致 reward 崩溃
+3. 与 CLIPO 的 contrastive loss 可以进一步叠加
+4. 更简单，更容易 debug
+
+**新增实验组**：
+
+| 组别 | 集成方式 | 目的 |
+|------|----------|------|
+| G6a | SPC as augmentation ($r' = r_{TTRL} + \alpha \cdot \Phi_{SPC}$) | 新建议方式 |
+| G6b | SPC as multiplicative ($r' = r_{TTRL} \cdot (1 + \beta \cdot \Phi_{SPC})$) | 乘法对照 |
+| G6c | SPC as original shaping ($\hat{A} = \hat{A}^{Group} \cdot f(\Phi)$) | 原始方式对照 |
+
+### 修订 3：Layer 1 Anchor 升级
+
+**依据**：
+- [[wiki/papers/du-2026-dare|DARE]] (ICML 2026) 证明 naive MV 存在 Information Collapse (Theorem 2.1)，distribution-aware reward AIME24 +25.3%
+- [[wiki/papers/du-2026-dual-consensus|DCRL]] 证明 dual consensus 解决 spurious majority
+- [[wiki/papers/liao-2026-t3rl|T³RL]] 证明 tool verification 使 N=16 > TTRL N=64
+
+**修订建议**：在实验矩阵中加入 Layer 1 anchor 升级的对比：
+
+| 组别 | Layer 1 Anchor | Step Signal | 目的 |
+|------|---------------|-------------|------|
+| G0 | TTRL (naive MV) | 无 | 原始 baseline |
+| G0-dare | TTRL (DARE) | 无 | 升级 anchor baseline |
+| G5-dare | TTRL (DARE) | SPC-only | SPC + 升级 anchor |
+
+**实现优先级**：DARE 实现最简单（只改 reward 计算，不改框架），建议优先实现。DCRL 需要维护两个模型，T³RL 需要 code interpreter，放到后续阶段。
+
+### 修订 4：SPC 与 Outcome Reward 的梯度解耦
+
+**依据**：[[wiki/papers/ma-2026-dcpo|DCPO]] (arXiv:2603.09117) 证明 accuracy 和 calibration 在 Fisher 信息度量下存在 gradient conflict（内积 < 0）。
+
+**对 SPC 的启示**：SPC 的 probing 信号包含模型置信度信息，与 outcome accuracy reward 可能存在类似的梯度冲突。
+
+**修订建议**：
+- 不直接合并 SPC gradient 和 TTRL gradient
+- 参考 DCPO 的 masked gradient 思路：reasoning tokens 接收 outcome gradient，step transition tokens 接收 SPC gradient
+- 这是一个可选的高级对照组，优先级中等
+
+**新增实验组**：
+
+| 组别 | 梯度方式 | 目的 |
+|------|----------|------|
+| G6-coupled | SPC + TTRL 梯度直接相加 | 基础方式 |
+| G6-decoupled | SPC + TTRL 梯度解耦（DCPO-style mask） | 解耦对照 |
+
+### 修订 5：新增 Contrastive Learning 对比组
+
+**依据**：[[wiki/papers/cui-2026-clipo|CLIPO]] 的 InfoNCE 对比学习跨 4 种 RL 算法一致有效，且直接解决 SPC 方案问题 #5（没有跨轨迹信息）。
+
+**修订建议**：在 Phase 4 的实验矩阵中新增 contrastive learning 对比组：
+
+| 组别 | 信号组合 | 目的 |
+|------|----------|------|
+| G8 | TTRL + CLIPO contrastive only | Contrastive-only baseline |
+| G9 | TTRL + SPC + CLIPO contrastive | SPC + 跨轨迹信号 |
+
+### 修订后的最小实验矩阵（更新版）
+
+如果算力有限，优先跑以下 8 组：
+
+| 优先级 | 实验组 | 优化框架 | Outcome Signal | Step Signal | 目的 |
+|--------|--------|----------|---------------|-------------|------|
+| P0 | TTRL baseline | DAPO | naive MV | 无 | 主 baseline |
+| P1 | TTRL + SPAE-GT | DAPO | naive MV | GT correctness | 工程上界 |
+| P2 | TTRL + SPAE-Pseudo | DAPO | naive MV | Pseudo correctness | 第一版无监督 |
+| P3 | TTRL + Confidence | DAPO | naive MV | Probe entropy | 最简 baseline |
+| P4 | TTRL + Step SE | DAPO | naive MV | Semantic entropy | 旧思路 baseline |
+| P5 | **TTRL + SPC-only** | **DAPO** | naive MV | **SPC (augmentation)** | **主方法** |
+| P6 | DARE + SPC | DAPO | DARE distribution | SPC (augmentation) | 升级 anchor |
+| P7 | TTRL + SPC + CLIPO | DAPO | naive MV | SPC + contrastive | 跨轨迹扩展 |
+
+### 新增的最容易踩坑的地方
+
+#### 坑 6：GRPO 梯度爆炸
+如果使用 GRPO 而非 DAPO，hard/easy queries 的梯度信号会被 η(p) 无限放大。症状：训练曲线剧烈震荡、entropy 快速下降、loss 突然爆炸。解决：切换到 DAPO 或检查是否需要 clip η(p)。
+
+#### 坑 7：SPC 信号过强导致 reward 崩溃
+如果 SPC 信号直接替换 outcome reward（而非做 augmentation），step-level 噪声可能主导训练。症状：accuracy 不升反降、output 变短或变长。解决：使用 augmentation 方式 + lower_bound，确保 TTRL outcome reward 仍是主信号。
+
+#### 坑 8：SPC 和 outcome reward 的梯度冲突
+类似 DCPO 发现的 accuracy-calibration conflict，SPC 信号和 outcome reward 可能在某些 token 上方向相反。症状：训练停滞、两个 loss 交替上下。解决：尝试 DCPO-style gradient masking 或降低 SPC 信号权重。

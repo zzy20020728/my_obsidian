@@ -1,10 +1,10 @@
 ---
 title: "Semantic Process Consistency: 无监督步骤级纠错研究方案"
 type: synthesis
-tags: [semantic-process-consistency, SPC, step-level, URLVR, SPAE, TTRL, CoVo, process-reward, research-proposal, reward-hacking]
+tags: [semantic-process-consistency, SPC, step-level, URLVR, SPAE, TTRL, CoVo, process-reward, research-proposal, reward-hacking, DCRL, DARE, T3RL, DCPO, PIPO, CLIPO, SARL, Meta-TTRL, V-Zero, contrastive-learning, gradient-conflict]
 created: 2026-04-08
-updated: 2026-04-08
-sources: [wiki/papers/zuo-2025-ttrl.md, wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2025-covo.md, wiki/papers/zhang-2025-empo.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/he-2026-urlvr-scale.md, wiki/concepts/process-reward-model.md, wiki/concepts/reward-hacking.md]
+updated: 2026-04-10
+sources: [wiki/papers/zuo-2025-ttrl.md, wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2025-covo.md, wiki/papers/zhang-2025-empo.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/he-2026-urlvr-scale.md, wiki/concepts/process-reward-model.md, wiki/concepts/reward-hacking.md, wiki/papers/du-2026-dual-consensus.md, wiki/papers/du-2026-dare.md, wiki/papers/liao-2026-t3rl.md, wiki/papers/ma-2026-dcpo.md, wiki/papers/cui-2026-clipo.md, wiki/papers/wang-2026-pipo.md, wiki/papers/wang-2026-sarl.md, wiki/papers/tan-2026-meta-ttrl.md, wiki/papers/wang-2026-v-zero.md]
 status: active
 ---
 
@@ -523,6 +523,117 @@ $$
 - vs [[wiki/papers/zhang-2025-covo|CoVo]]：我们把 consistency 从 likelihood judgment 升级为 semantic rollout behavior。
 - vs [[wiki/papers/zhang-2025-empo|EMPO]]：我们从 outcome-level semantic uncertainty 推进到 step-level process support。
 - vs [[wiki/papers/ghimire-2026-prism|PRISM]]：我们仍使用 internal signal，但更直接面向“过程是否支持答案”，可作为更强的 process-side baseline。
+- vs [[wiki/papers/du-2026-dual-consensus|DCRL]]：DCRL 改进 outcome-level 的 pseudo-label 质量（解决 spurious majority），SPC 改进 step-level 的 credit assignment。两者在不同层（outcome vs process）工作，互补而非竞争。
+- vs [[wiki/papers/cui-2026-clipo|CLIPO]]：CLIPO 在 rollout-level 做跨轨迹对比学习（抑制 spurious reasoning），SPC 在 step-level 做语义一致性检查。CLIPO 可以直接集成到 SPC 框架中作为跨轨迹信号。
+- vs [[wiki/papers/wang-2026-sarl|SARL]]：SARL 看推理拓扑结构（宏观），SPC 看语义一致性（微观）。两者评估推理质量的角度正交，可互补组合。
+- vs [[wiki/papers/ma-2026-dcpo|DCPO]]：DCPO 解耦 accuracy 和 calibration 的梯度，SPC 需要借鉴类似思想解耦 outcome reward 和 step-level process signal 的梯度。
+- vs [[wiki/papers/wang-2026-pipo|PIPO]]：PIPO 修复 GRPO 的梯度爆炸，SPC 实验应采用 PIPO 发现后的改进框架（DAPO 或 PIRL）以确保训练稳定性。
+
+
+## 2026 年新论文对 SPC 方案的系统性启发
+
+> 2026 年 1-4 月发表的 10 篇新论文，从 Reward Estimation、训练稳定性、Label-Free RL 和多模态自进化四个方向，为 SPC 方案提供了重要的设计改进和验证信号。
+
+### 一、Layer 1 (Outcome Anchor) 升级路径
+
+SPC 三层架构的 Layer 1 当前使用 TTRL 的 naive majority voting。三篇新论文证明了这不是最优选择：
+
+| 升级方案 | 论文 | 核心改进 | 对 SPC 的影响 |
+|----------|------|----------|--------------|
+| Dual Consensus | [[wiki/papers/du-2026-dual-consensus\|DCRL]] | Anchor+Explorer harmonic mean 解决 spurious majority | 减少 Layer 1 的伪标签错误率，SPC 基座更可靠 |
+| Distribution-Aware | [[wiki/papers/du-2026-dare\|DARE]] | Uncertainty-normalized distribution 保留完整投票分布信息 | Information Collapse (Theorem 2.1) 理论与 SPC 的信息保留目标一致 |
+| Tool Verification | [[wiki/papers/liao-2026-t3rl\|T³RL]] | Code execution 锚定 pseudo-label，N=16 超 TTRL N=64 | External anchor 使 SPC 的 intrinsic step signal 有更稳定的 outcome 基座 |
+
+**实验建议**：SPC 正式实验中，Layer 1 应至少对比 naive TTRL vs DARE-enhanced TTRL 两个版本。T³RL 适合数学可编程验证的子集，DCRL 适合需要打破 spurious majority 的场景。
+
+### 二、优化框架风险与解决方案
+
+两篇论文揭露了 GRPO 的严重缺陷，直接影响 SPC 实验设计：
+
+#### PIPO: GRPO 梯度爆炸 (arXiv:2604.00860)
+
+[[wiki/papers/wang-2026-pipo\|PIPO]] 严格证明 GRPO 的 group-relative normalization 引入 gradient scaling factor：
+
+$$\eta(p) \sim \frac{\sqrt{G-1}}{G \cdot p(1-p)} \to \infty \quad \text{when } p \to 0 \text{ or } p \to 1$$
+
+**对 SPC 的影响**：
+- SPC 在 step-level 做 shaping reward，如果某些步骤的 rollout 一致性接近 0 或 1，η(p) 会放大噪声
+- Hard queries（模型初始正确率低）和 easy queries（正确率高）的梯度信号不稳定
+- **建议**：SPC 实验应使用 DAPO（Dynamic Sampling 过滤全对/全错 groups）替代原始 GRPO，或集成 PIPO-style retrospective verification
+
+#### DCPO: Accuracy-Calibration Gradient Conflict (arXiv:2603.09117)
+
+[[wiki/papers/ma-2026-dcpo\|DCPO]] 首次证明 accuracy 优化和 calibration 优化在 Fisher 信息度量下梯度方向冲突：
+
+$$\langle \nabla J_{acc}, \nabla J_{cal} \rangle_{F^{-1}} < 0$$
+
+**对 SPC 的影响**：
+- SPC 的 probing 信号本质上包含模型置信度信息。如果直接将 SPC step signal 与 TTRL outcome reward 相加，可能产生类似的梯度冲突
+- **建议**：SPC 信号与 outcome reward 的整合方式应参考 DCPO 的解耦思想——不是简单加权求和，而是在梯度层面分别作用于不同 token 子集（如 reasoning tokens 接收 outcome gradient，transition tokens 接收 SPC gradient）
+
+### 三、跨轨迹信号：CLIPO 直接解决 SPC 问题 #5
+
+SPC 当前方案的第五个已知问题是"没有跨轨迹信息"——每条轨迹独立评估，不同正确轨迹之间的结构相似性被忽略。
+
+[[wiki/papers/cui-2026-clipo\|CLIPO]] (arXiv:2603.10101, Alibaba Qwen) 提出的 InfoNCE 对比学习**直接解决此问题**：
+
+- **核心机制**：在 group 内的 successful rollouts 上施加 contrastive loss，让正确推理路径的表示聚拢，偏离主流正确推理的 outlier 被推远
+- **Reward augmentation 设计**：$r'_i = r_i + \max(-\lambda \cdot \mathcal{L}_{CL}(x, y_i), -0.5)$
+
+**SPC 可以直接借鉴的设计**：
+1. 在 SPC 框架中增加 step-level contrastive loss——比较不同轨迹在同一 step boundary 的 semantic rollout 一致性
+2. SPC 的 reward 集成也可采用 CLIPO 的 augmentation 方式：$r'_i = r_{TTRL} + \max(-\lambda \cdot \Phi_{SPC}, -0.5)$ 而非直接替换 outcome reward
+3. CLIPO 跨 4 种 RL 算法一致有效，证明 contrastive regularization 解决的是 RLVR 的通用问题
+
+### 四、SARL 与 SPC 的互补关系
+
+[[wiki/papers/wang-2026-sarl\|SARL]] (arXiv:2603.27977) 是另一种"看模型怎么做"的方法：
+
+| 维度 | SARL | SPC |
+|------|------|-----|
+| 关注什么 | 推理链的**拓扑结构** | 推理步骤的**语义一致性** |
+| 核心度量 | Small-world network: C(G) + 1/(1+L(G)) | Semantic rollout consistency: SPC_k |
+| 是否需要答案 | 完全不需要 | 需要最终答案做对比 |
+| 适用场景 | 数学 + 开放域 | 主要面向数学 |
+| 惊人结果 | 无标注 +7.65 超越 GT RL +7.15 | — |
+
+**互补设计方案**：SARL 评估宏观推理结构是否合理（高 C + 低 L），SPC 评估微观步骤是否语义连贯。两者可以组合为双信号 process reward。SARL 在开放域表现突出（WildBench +9.10 vs EMPO -0.71），如果 SPC 未来要扩展到非数学任务，SARL 的思路是天然候选。
+
+### 五、Metacognitive Synergy: 支持 SPC 自评估路线
+
+两篇多模态论文提供了自评估优于外部评估的证据：
+
+1. **[[wiki/papers/tan-2026-meta-ttrl\|Meta-TTRL]]** 发现：7B 模型自我内省产生的 reward 信号 > 235B 外部模型评估。Capacity-matched signals > absolute evaluator strength
+2. **[[wiki/papers/wang-2026-v-zero\|V-Zero]]** 发现：无监督 Questioner-Solver co-evolution (51.9) > 有监督 GRPO (50.8)
+
+**对 SPC 的意义**：SPC 的核心路线是 probing-based self-evaluation（让模型自己短续写来评估步骤质量），而非训练额外的外部 PRM。Meta-TTRL 和 V-Zero 的结果为这条路线提供了信心——self-evaluation 不是退而求其次的选择，而可能是更优的设计。
+
+### 六、V-Zero Dual-Track Reward 启发 SPC 信号设计
+
+[[wiki/papers/wang-2026-v-zero\|V-Zero]] 的 Dual-Track Reasoning Reward 对比 intuition (System 1 快思考) vs reasoning (System 2 慢思考)：
+
+- **一致 case**：给 ambiguity reward $r_d = \min(c, 1-c)$，奖励边界样本而非已确定的简单样本
+- **分歧 case**：给 $r_d = 0.5 \cdot c$，推理推翻直觉时 reward 最高
+
+**启发 SPC 信号设计**：
+- 将 SPAE probing 的短续写答案视为 "intuition"（快速预测），将完整轨迹最终答案视为 "reasoning"
+- SPC 在 consistency 已高的步骤适度降低 reward（类似 V-Zero 的 ambiguity reward 逻辑），在 consistency 低的步骤增大 reward（这些步骤是模型真正的提升空间）
+- 这直接对接 SPAE 的 saturation penalty 设计
+
+### 七、综合设计调整建议
+
+基于以上分析，SPC 方案可以做以下具体改进：
+
+| 编号 | 改进项 | 优先级 | 来源论文 |
+|------|--------|--------|----------|
+| A1 | Layer 1 从 naive MV 升级为 DARE distribution-aware | 高 | DARE |
+| A2 | RL 优化框架从 GRPO 切换到 DAPO | 高 | PIPO |
+| A3 | SPC 信号用 augmentation 方式集成（而非替换 outcome reward） | 高 | CLIPO |
+| A4 | 新增 step-level contrastive loss 对比组 | 中 | CLIPO |
+| A5 | SPC 与 outcome reward 梯度解耦 | 中 | DCPO |
+| A6 | Layer 1 增加 DCRL dual consensus 对比组 | 中 | DCRL |
+| A7 | Saturation penalty 参考 V-Zero 的 ambiguity reward 思路 | 低 | V-Zero |
+| A8 | 开放域扩展考虑 SARL 拓扑 reward | 低 | SARL |
 
 ## 潜在标题
 

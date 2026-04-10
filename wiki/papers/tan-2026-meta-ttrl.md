@@ -58,7 +58,7 @@ Meta Level (内省器):
 ```
 
 #### Rubric 分解示例
-
+··
 Text prompt: "A red cat sitting on a blue chair"
 - **维度 1: 物体存在** → Q1: "Is there a cat in the image?" Q2: "Is there a chair?"
 - **维度 2: 颜色属性** → Q1: "Is the cat red?" Q2: "Is the chair blue?"
