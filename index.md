@@ -1,7 +1,7 @@
 ---
 title: Wiki 索引
 type: index
-updated: 2026-04-10
+updated: 2026-04-11
 ---
 
 # Wiki 索引
@@ -67,6 +67,9 @@ updated: 2026-04-10
 - [[wiki/papers/wu-2026-spae|SPAE (Wu et al., 2026)]] — Training-free probing 提取 Step Potential，step-level advantage estimation，解决 Over-Checking 和 R2W 失败
 - [[wiki/papers/liu-2025-vppo|VPPO (Liu et al., 2025)]] — PRM 仅做 first error detection，partition 轨迹为 good prefix + erroneous suffix，精准 credit assignment，理论证明指数级样本效率提升
 - [[wiki/papers/xie-2025-capo|CAPO (Xie et al., 2025)]] — LLM-as-GenPRM 单次推理生成所有步骤判定，非对称奖励塑形平衡 outcome 与 process 信号，token-level credit assignment
+- [[wiki/papers/zhang-2026-praise|PRAISE (Zhang et al., 2026)]] — ⭐ Prefix rollout reuse + adjacent prefix gains 做 step reward，agentic search 5 个 benchmark 全面提升，与 SPC 思想最接近的已有工作
+- [[wiki/papers/chen-2026-slate|SLATE (Chen et al., 2026)]] — Shared prefix 做 k 个 continuation 估计 step-level advantage，理论证明方差降低 T 倍，LLM judge 做 dense reward
+- [[wiki/papers/liang-2026-step|STEP (Liang et al., 2026)]] — Hidden states 训练 lightweight MLP step scorer，前 25% 步骤已能区分正确/错误 traces，45%–70% 推理延迟降低
 
 ### Open-ended RL / Dense Reward
 - [[wiki/papers/zhang-2026-grad2reward|Grad2Reward (Zhang et al., 2026)]] — 梯度 attribution 提取 dense token-level reward，self-judging，ICML 2026

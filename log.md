@@ -368,3 +368,31 @@ type: log
 - **TTVS**的数据增广思路可扩展 SPC 的测试数据覆盖
 - **SHAPE**的层次化方法与 SPC step-level 方案互补
 - **Self-Guide**的 policy-reward co-evolution loop 与 Co-Evolving Verifier 方案高度同构
+
+## [2026-04-11] research | SPC 竞品搜索：prefix-based step reward 方向
+
+大规模 arXiv 搜索（13+ 轮），覆盖 linear probing + RL reward、step-level reward + unsupervised、continuation/rollout-based evaluation、process reward model without annotation、credit assignment in RLHF/RLVR、semantic consistency + reasoning、Monte Carlo rollout + process reward、prefix rollout + intermediate answer 等维度，目标是确认 SPC 方案的新颖性。
+
+### 核心发现：没有人做过完全一样的工作
+
+SPC 的四大独特卖点确认：
+1. **完全无监督**：不需要 GT answer，只需与轨迹自身 final answer 对比
+2. **语义等价判断**：不是简单的 exact match 或 likelihood，而是 semantic equivalence
+3. **短续写 probing**：比完整 MC rollout 开销低得多
+4. **面向 URLVR**：专门设计用于无标签场景下的 step-level credit assignment
+
+### 新建论文页（3 篇最接近竞品）
+- 创建 wiki/papers/zhang-2026-praise.md — **PRAISE**（最接近竞品）：prefix rollout + adjacent prefix gains，但用 GT scoring、面向 agentic search、用 PPO
+- 创建 wiki/papers/liang-2026-step.md — **STEP**：hidden state step scorer + GPU-aware pruning，验证了"hidden states 在早期就编码 trace quality"
+- 创建 wiki/papers/chen-2026-slate.md — **SLATE**：shared prefix continuation + LLM judge dense reward，方差降低 T 倍理论
+
+### Synthesis 更新
+- 更新 step-level-se-proposal.md：
+  - Positioning 新增 3 条对比项（PRAISE / SLATE / STEP）
+  - 综合设计调整建议新增 A13-A15（PRAISE baseline / SLATE 方差验证 / STEP MLP 参考架构）
+- 更新 urlvr-landscape.md：
+  - 速览表从 31 篇扩展到 34 篇
+  - 新增 PRAISE/SLATE/STEP 到打分粒度表、优化框架表、信号来源图、研究谱系图
+  - 新增核心发现 #13：Prefix-based rollout 是 step-level reward 的可行范式
+- 更新 index.md：Step-Level Credit Assignment 分类新增 3 篇论文
+- 论文总数：40 → **43 篇**
