@@ -396,3 +396,23 @@ SPC 的四大独特卖点确认：
   - 新增核心发现 #13：Prefix-based rollout 是 step-level reward 的可行范式
 - 更新 index.md：Step-Level Credit Assignment 分类新增 3 篇论文
 - 论文总数：40 → **43 篇**
+
+## [2026-04-13] synthesis | Dual-Network Outcome-Driven Co-Evolution 方案
+
+### 背景
+- Brainstorming 讨论：在 co-evolving verifier 中，Judge 的校准应该是 imitation-driven（对齐 SPC）还是 outcome-driven（让 Model 变好就行）？
+- 经过多轮讨论，明确了一个独立变体方案：同源分叉的 dual-network（Model + Judge 共享 base weights，LoRA 独立更新），Judge 以 "Model 是否因 Judge 的反馈而进步" 为训练信号
+
+### 更新内容
+- 更新 co-evolving-verifier-proposal.md：
+  - 新增 "变体方案：Dual-Network Outcome-Driven Co-Evolution" section（~120 行）
+    - 架构设计：同源 LoRA 分叉，额外显存 ~5%
+    - 训练流程：日常 RL + 每 N_eval 步 Judge 校准 + 异常 SPC 兜底
+    - Imitation-Driven vs Outcome-Driven 对比表
+    - 理论动机：reward utility > reward accuracy
+    - 四个核心挑战及缓解策略
+    - 与三层自举架构的关系（Layer 3 替代实现）
+  - 实验设计新增 Exp 3: Imitation-Driven vs Outcome-Driven 核心对照（5 组实验 A-E）
+  - Positioning 新增 vs Grad2Reward 对比
+  - 更新 tags 和 updated 日期
+- 评估结论：outcome-driven 有理论独立价值（探索度 > 蒸馏），但信号稀疏和双层优化稳定性是主要风险。定位为 co-evolving verifier 论文的实验变体（Exp 3），不独立成文

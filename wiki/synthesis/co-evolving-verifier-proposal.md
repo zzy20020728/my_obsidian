@@ -1,9 +1,9 @@
 ---
 title: "Co-Evolving Verifier: 让 PRM 跟着 RL 训练一起进化"
 type: synthesis
-tags: [co-evolving, PRM, URLVR, SPC, bootstrapping, self-improving, reward-model, research-proposal, V-Zero, Meta-TTRL, DCRL, DARE, metacognitive-synergy, capacity-matched, CoVerRL, Self-Guide, imperfect-verifier, balanced-training, beta-posterior, noise-tolerance, SCRL, PowerFlow, DistriTTRL, OLR, DBB]
+tags: [co-evolving, PRM, URLVR, SPC, bootstrapping, self-improving, reward-model, research-proposal, V-Zero, Meta-TTRL, DCRL, DARE, metacognitive-synergy, capacity-matched, CoVerRL, Self-Guide, imperfect-verifier, balanced-training, beta-posterior, noise-tolerance, SCRL, PowerFlow, DistriTTRL, OLR, DBB, dual-network, outcome-driven, judge-training, LoRA-fork]
 created: 2026-04-08
-updated: 2026-04-10
+updated: 2026-04-13
 sources: [wiki/synthesis/step-level-se-proposal.md, wiki/papers/rahman-2025-spark.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/he-2026-urlvr-scale.md, wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2025-covo.md, wiki/papers/wang-2026-v-zero.md, wiki/papers/tan-2026-meta-ttrl.md, wiki/papers/du-2026-dual-consensus.md, wiki/papers/du-2026-dare.md, wiki/papers/cui-2026-clipo.md, wiki/papers/pan-2026-coverrl.md, wiki/papers/wang-2026-self-guide.md, wiki/papers/plesner-2026-imperfect-verifier.md, wiki/papers/yan-2026-scrl.md, wiki/papers/chen-2026-powerflow.md, wiki/papers/yang-2026-distribttrl.md, wiki/papers/yang-2026-olr.md, wiki/papers/kim-2026-dbb.md]
 status: draft
 ---
@@ -42,18 +42,18 @@ SPARK (Rahman et al.) 自己也发现了这个问题——直接用 self-consist
 
 ### 已有工作
 
-| 论文 | 核心 idea | 有无 GT anchor | 与 URLVR 的距离 |
-|------|-----------|---------------|-----------------|
-| **SPARK (Liu et al., 2025/09)** arXiv:2509.22624 | Policy 和 Reward Model 同时训练。回收 RLVR 的 rollout + correctness 信号，同时训练模型作为 generative reward model（pointwise + pairwise + reflection 目标混合）。正反馈循环。 | **有** — 依赖 verifiable reward（代码执行/答案验证） | 近，但不是纯 URLVR |
-| **rePIRL (Wu et al., 2026/02)** arXiv:2602.07832 | 用 Inverse RL 框架交替更新 policy 和 PRM。理论上统一了 online 和 offline PRM learning。 | **需要 expert demonstrations** | 中等 |
-| **Sci-CoE (He et al., 2026/02)** arXiv:2602.12164 | 两阶段 co-evolving：Stage 1 用少量标注数据建 verifier anchor；Stage 2 用 geometric consensus（一致性 + 可靠性 + 多样性）驱动自迭代。Solver 和 Verifier 一起进化。 | **Sparse supervision**（少量标注） | 较近 |
-| **Self-Judge (Wu et al., 2026)** 已读 | Actor 和 Judge 分离但都来自同一模型。Judge frozen。 | 否 | 近，但 Judge 不进化 |
-| **SPARK (Rahman et al., 2025)** 已读 | 自训练 PRM 但冻结使用。 | PRM 训练时用 self-consistency | 近，但 PRM 不进化 |
-| **V-Zero (Wang et al., 2026/01)** arXiv:2601.10094 | Questioner-Solver co-evolution。Questioner 生成 MCQ + intuitive answer，Solver 用 CoT 推理 + MV 获得 pseudo-label，Dual-Track Reward 对比 intuition vs reasoning。 | **否** — 完全无标注 | **非常近** — 纯 URLVR co-evolution |
-| **Meta-TTRL (Tan et al., 2026/03)** arXiv:2603.15724 | TTRL 扩展到 T2I。元认知架构（生成器+内省器），rubric-based 二值评估 → 几何平均聚合 reward。 | **否** — 自我评估 | 中等 — T2I 领域，但 metacognitive synergy 发现高度相关 |
-| **[[wiki/papers/pan-2026-coverrl\|CoVerRL (Pan et al., 2026)]]** | 单一模型交替充当 generator/verifier，MV 提供对比训练信号实现 co-evolution。Balanced training（$\|V^+\| = \|V^-\|$）是关键。Verification accuracy 55%→85%，+4.7-5.9% over TTRL。 | 否（MV-based） | **非常近** — 直接验证了 co-evolving 可行性，但 outcome-level |
-| **[[wiki/papers/wang-2026-self-guide\|Self-Guide (Wang et al., 2026)]]** | 同一模型生成 internal reward，用于 inference-time guidance + training-time step-level reward。Policy-reward co-evolution loop。 | 否（internal reward） | **近** — policy-reward loop 与我们的 SPC-Verifier loop 同构 |
-| **[[wiki/papers/plesner-2026-imperfect-verifier\|Imperfect Verifier (Plesner et al., 2026)]]** | 证明 15% 噪声率内 RLVR 仍鲁棒。"Moderate accuracy + high precision" 原则。 | N/A（理论分析） | **中等** — 为不完美 co-evolving verifier 提供容错理论 |
+| 论文                                                                                             | 核心 idea                                                                                                                                               | 有无 GT anchor                            | 与 URLVR 的距离                                          |
+| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ---------------------------------------------------- |
+| **SPARK (Liu et al., 2025/09)** arXiv:2509.22624                                               | Policy 和 Reward Model 同时训练。回收 RLVR 的 rollout + correctness 信号，同时训练模型作为 generative reward model（pointwise + pairwise + reflection 目标混合）。正反馈循环。         | **有** — 依赖 verifiable reward（代码执行/答案验证） | 近，但不是纯 URLVR                                         |
+| **rePIRL (Wu et al., 2026/02)** arXiv:2602.07832                                               | 用 Inverse RL 框架交替更新 policy 和 PRM。理论上统一了 online 和 offline PRM learning。                                                                                | **需要 expert demonstrations**            | 中等                                                   |
+| **Sci-CoE (He et al., 2026/02)** arXiv:2602.12164                                              | 两阶段 co-evolving：Stage 1 用少量标注数据建 verifier anchor；Stage 2 用 geometric consensus（一致性 + 可靠性 + 多样性）驱动自迭代。Solver 和 Verifier 一起进化。                          | **Sparse supervision**（少量标注）            | 较近                                                   |
+| **Self-Judge (Wu et al., 2026)** 已读                                                            | Actor 和 Judge 分离但都来自同一模型。Judge frozen。                                                                                                                | 否                                       | 近，但 Judge 不进化                                        |
+| **SPARK (Rahman et al., 2025)** 已读                                                             | 自训练 PRM 但冻结使用。                                                                                                                                        | PRM 训练时用 self-consistency               | 近，但 PRM 不进化                                          |
+| **V-Zero (Wang et al., 2026/01)** arXiv:2601.10094                                             | Questioner-Solver co-evolution。Questioner 生成 MCQ + intuitive answer，Solver 用 CoT 推理 + MV 获得 pseudo-label，Dual-Track Reward 对比 intuition vs reasoning。 | **否** — 完全无标注                           | **非常近** — 纯 URLVR co-evolution                       |
+| **Meta-TTRL (Tan et al., 2026/03)** arXiv:2603.15724                                           | TTRL 扩展到 T2I。元认知架构（生成器+内省器），rubric-based 二值评估 → 几何平均聚合 reward。                                                                                        | **否** — 自我评估                            | 中等 — T2I 领域，但 metacognitive synergy 发现高度相关           |
+| **[[wiki/papers/pan-2026-coverrl\|CoVerRL (Pan et al., 2026)]]**                               | 单一模型交替充当 generator/verifier，MV 提供对比训练信号实现 co-evolution。Balanced training（$\|V^+\| = \|V^-\|$）是关键。Verification accuracy 55%→85%，+4.7-5.9% over TTRL。   | 否（MV-based）                             | **非常近** — 直接验证了 co-evolving 可行性，但 outcome-level      |
+| **[[wiki/papers/wang-2026-self-guide\|Self-Guide (Wang et al., 2026)]]**                       | 同一模型生成 internal reward，用于 inference-time guidance + training-time step-level reward。Policy-reward co-evolution loop。                                  | 否（internal reward）                      | **近** — policy-reward loop 与我们的 SPC-Verifier loop 同构 |
+| **[[wiki/papers/plesner-2026-imperfect-verifier\|Imperfect Verifier (Plesner et al., 2026)]]** | 证明 15% 噪声率内 RLVR 仍鲁棒。"Moderate accuracy + high precision" 原则。                                                                                         | N/A（理论分析）                               | **中等** — 为不完美 co-evolving verifier 提供容错理论            |
 
 ### 关键发现
 
@@ -251,6 +251,128 @@ $$
 2. [[wiki/papers/rahman-2025-spark|SHAPE]] 已证明 step-level credit assignment 可以在提升 accuracy 的同时减少 30% token 消耗——效率提升是 step-level 的独有优势
 3. 可以设计 CoVerRL + SPC 的组合实验，验证 step-level 的边际价值
 
+## 变体方案：Dual-Network Outcome-Driven Co-Evolution
+
+### 动机
+
+上述三层自举架构（Layer 1-3）中，Layer 3 的 Verifier 校准方式是 **imitation-driven**：直接用 SPC 标签做回归，让 Verifier 对齐 SPC 的打分标准。这存在一个根本限制——**Verifier 的天花板被锁死在 SPC**。如果存在某种比 SPC 更有效的 step-level 评分策略（比如 SPC 无法区分的步骤之间，存在其他特征可以区分），imitation-driven 的 Verifier 永远发现不了。
+
+一个自然的问题：**能不能让 Verifier 自由探索评分策略，只要最终 Model 变好就行？**
+
+这引出了 **outcome-driven judge training** 的思路：不要求 Judge 和 SPC 打一样的分，只要求 Judge 的打分能引导 Model 朝 SPC/MV 认可的方向进步。
+
+### 核心设计
+
+#### 架构：同源分叉的 Dual-Network
+
+```
+初始化：
+  Base_LLM (预训练模型，如 Qwen2.5-7B)
+  Model = Base_LLM + LoRA_policy    ← 负责推理生成
+  Judge = Base_LLM + LoRA_judge     ← 负责 step-level 打分
+  共享 base weights，仅 LoRA adapters 独立更新
+```
+
+关键设计决策：
+- **同源初始化**：Judge 从同一个预训练模型出发，天然具备与 Model 相当的语言理解能力
+- **LoRA 分叉**：额外显存开销约 ~5%（而非 2x），工程可行
+- **独立参数更新**：Model 的 policy gradient 不干扰 Judge 的评分能力，反之亦然。区别于 SPARK (Liu et al.) 的单网络多目标训练中 policy gradient 和 reward modeling gradient 可能冲突
+
+#### 训练流程
+
+```
+日常 RL 训练（每步）：
+  1. Model 对 batch 问题生成 responses
+  2. Judge 对每个 step 打分 → {score_k}
+  3. 用 step scores 计算 advantage → RL 更新 Model（仅 LoRA_policy）
+  
+Judge 校准（每 N_eval 步）：
+  4. 记录 Model_v1 在校准 batch 上的表现：
+     - MV 正确率 / SPC 分数作为 baseline_v1
+  5. 用最近 N_eval 步 Judge 指导下训练的 Model_v2 重新生成：
+     - MV 正确率 / SPC 分数作为 baseline_v2
+  6. Judge reward = Δperformance = baseline_v2 - baseline_v1
+  7. 用 Δperformance 更新 Judge（仅 LoRA_judge）
+
+异常兜底：
+  如果连续 M 次 Judge 更新后 Δperformance ≤ 0：
+     → 回退到 SPC 直接标签校准（imitation-driven fallback）
+     → 防止 Judge 持续给出无效甚至有害的评分
+```
+
+#### 与 Imitation-Driven 校准的本质区别
+
+| 维度 | Imitation-Driven（已有设计） | Outcome-Driven（本变体） |
+|------|---------------------------|------------------------|
+| Judge 优化目标 | $\min \|Judge(step_k) - SPC(step_k)\|$ | $\max P(\text{Model improves} \| \text{Judge's feedback})$ |
+| 类比 | Behavior Cloning | Reinforcement Learning |
+| Judge 天花板 | = SPC | 理论上可 > SPC |
+| 探索空间 | 无（纯监督） | 有（RL 搜索） |
+| 训练稳定性 | 高（回归问题） | 较低（稀疏 RL signal） |
+| 收敛速度 | 快（dense step-level labels） | 慢（trajectory-level reward） |
+| "不准但有用"的 reward | 不可能（被强制对齐 SPC） | 可能（只要 Model 变好就行） |
+
+#### 理论动机
+
+在 reward shaping 文献中，存在两种评价 reward function 质量的标准：
+- **Accuracy**：shaped reward 与 true reward 的接近程度
+- **Utility**：shaped reward 导致的 policy improvement 幅度
+
+一个"不准但有用"的 reward function 可能比"准但没用"的更好。例如，Judge 可能发现在某些步骤给极端信号能加速学习，虽然这个评分不反映 SPC 意义上的 semantic consistency，但能引导 policy 更快进步。Imitation-driven 的 Verifier 永远不会探索到这种策略。
+
+### 风险与挑战
+
+#### 挑战 1：信号稀疏
+
+Judge 对 K 个步骤各输出一个分数（动作空间 $\mathbb{R}^K$），但训练信号是每 $N_{eval}$ 步一个 scalar 的 $\Delta\text{performance}$。这是一个高维动作空间 + 稀疏 reward 的 RL 问题，收敛会比 imitation-driven 慢得多。
+
+**缓解**：
+1. SPC 冷启动：先用 SPC 标签做 warm-up 训练 Judge（Phase A），给 Judge 一个好的初始评分策略，再切换到 outcome-driven 微调
+2. 限制 Judge 的更新幅度（小 LoRA rank、低学习率），避免一次更新偏离太远
+
+#### 挑战 2：进步信号的度量
+
+"Model 是否变好"的度量选择影响信号质量：
+- **MV 正确率**：简单题饱和后无信号，但噪声低
+- **SPC 分数**：后期 sharpening 导致区分度下降
+- **建议**：两者加权组合，SPC 有效期用 SPC，退化后切换到 MV
+
+#### 挑战 3：Judge 更新频率 $N_{eval}$
+
+- $N_{eval}$ 太小 → 单步 RL 改变微小，$\Delta\text{performance}$ 被采样噪声淹没
+- $N_{eval}$ 太大 → Judge 长期冻结，退化成 frozen judge
+- **建议范围**：$N_{eval} \in [50, 200]$，每次用 ~500 个样本评估
+
+#### 挑战 4：Bi-level Optimization 稳定性
+
+Model 用 Judge 的分数训练，Judge 用 Model 的进步训练——这是双层优化。类似 GAN 的训练动态，存在振荡风险。
+
+**缓解**：
+1. Judge 更新频率远低于 Model（$N_{eval} \gg 1$），类似 Target Network 的稳定化效果
+2. 异常兜底机制：连续 M 次无进步 → 回退到 SPC 直接校准
+3. 可借鉴 [[wiki/papers/wang-2026-self-guide|Self-Guide]] 的 Stage-wise Trust Schedule：warm-up → activation → full → annealing
+
+### 与现有方案的关系
+
+本变体是三层自举架构（Section "方案"）的 **Layer 3 替代实现**，Layer 1（TTRL outcome anchor）和 Layer 2（SPC step-level signal）不变。区别仅在于 Layer 3 的 Verifier 如何被训练：
+
+```
+三层架构（不变）：
+  Layer 1: TTRL outcome anchor → response-level pseudo reward
+  Layer 2: SPC step-level signal → expensive but accurate
+
+Layer 3 变体 A（已有设计）：Imitation-Driven
+  → Verifier 直接对齐 SPC 标签
+  → 稳定、快速、天花板 = SPC
+
+Layer 3 变体 B（本节）：Outcome-Driven
+  → Verifier 通过 RL 自由探索，以 Model 进步为 reward
+  → SPC 作为 fallback 兜底
+  → 可能超越 SPC 天花板，但训练更难
+```
+
+**建议实验策略**：先实现变体 A 作为 baseline，再实现变体 B 做对照。如果 B > A → outcome-driven 确实发现了更好的评分策略 → 强 finding。如果 B ≈ A → 说明 SPC 已经是足够好的评分标准。如果 B < A → 信号稀疏的代价大于探索的收益。
+
 ## 实验设计（如果独立成文）
 
 ### Exp 1: SPC vs Verifier 的信号质量对比
@@ -275,7 +397,32 @@ $$
 3. 总计算成本（wall-clock time）
 4. Verifier-SPC 一致性随训练步数的变化
 
-### Exp 3: 长期稳定性
+### Exp 3: Imitation-Driven vs Outcome-Driven Judge Training（核心对照）
+
+本实验直接检验 Dual-Network Outcome-Driven 变体的核心假说：**自由探索的 Judge 能否超越 SPC 蒸馏的 Judge？**
+
+| 实验组 | Judge 架构 | Judge 训练方式 | 校准信号 |
+|--------|-----------|--------------|---------|
+| A: Frozen SPC | 无 Judge | 全程 SPC probing | — |
+| B: Imitation-Driven | LoRA_judge | SPC 标签回归 | $\min \|J(s_k) - SPC_k\|$ |
+| C: Outcome-Driven | LoRA_judge | Model 进步做 RL | $\Delta\text{performance}$ |
+| D: Outcome + Fallback | LoRA_judge | Outcome-driven + SPC 兜底 | 混合 |
+| E: SPARK-style 多目标 | 单 LoRA（共享） | Policy loss + judging loss 联合 | Verifiable reward |
+
+评估指标：
+1. **Judge 天花板**：Judge step-level score 与 oracle SPC 的 AUROC —— C 是否 > B？
+2. **Policy 最终性能**：AIME/AMC/MATH500 accuracy
+3. **训练效率**：达到同等 accuracy 所需的 wall-clock time
+4. **Judge 发现新策略的证据**：分析 C 组 Judge 的打分分布 vs SPC 分布，是否存在系统性偏差且该偏差是有益的
+5. **稳定性**：训练曲线是否有 collapse / 振荡
+
+关键假说检验：
+- 如果 C > B > A → **outcome-driven 探索发现了比 SPC 更好的评分策略** → 核心贡献
+- 如果 C ≈ B > A → co-evolving 有效，但 SPC 已是足够好的标准 → 回退到 imitation-driven
+- 如果 B > C → 信号稀疏的代价 > 探索收益 → outcome-driven 不可行
+- 如果 D > C → fallback 机制有效，纯 outcome-driven 不稳定需要兜底
+
+### Exp 4: 长期稳定性
 
 - 跑 >1000 步训练
 - 监控 SPC 方差是否趋零
@@ -308,3 +455,4 @@ $$
 - vs **[[wiki/papers/pan-2026-coverrl|CoVerRL (Pan et al., 2026)]]**：CoVerRL 最接近我们的 co-evolving 理念，但它在 outcome-level 做 generator-verifier 交替训练；我们的方案在 step-level 做 SPC-anchored verifier 训练，提供更细粒度的 process-level 信号。CoVerRL 的 balanced training 发现值得直接借鉴。
 - vs **[[wiki/papers/wang-2026-self-guide|Self-Guide (Wang et al., 2026)]]**：Self-Guide 的 policy-reward co-evolution 架构与我们最接近。关键差异：(1) Self-Guide 用于 agent 任务，我们用于数学推理 URLVR；(2) Self-Guide 的 internal reward 是 trajectory-level，我们的是 step-level；(3) Self-Guide 没有周期性校准机制，我们用 SPC 做周期性重校准。
 - vs **[[wiki/papers/plesner-2026-imperfect-verifier|Imperfect Verifier (Plesner et al., 2026)]]**：Imperfect Verifier 为我们的方案提供了最直接的理论支撑——co-evolving verifier 不需要完美，只需 precision 足够高。15% 容错边界为 Phase C 的在线校准频率选择提供了量化依据。
+- vs **Grad2Reward (Zhang et al., 2026)**：Grad2Reward 的 self-judging 证明了同等规模模型的判别能力足以提供有效 reward（1.5B self-judge ≈ 30B 外部 judge）。我们的 Dual-Network 变体进一步放开：不要求 Judge 对齐任何标准（SPC 或 GT），只要求 Judge 的评分能驱动 Model 进步。Grad2Reward 的 frozen self-judge 是我们 outcome-driven co-evolving Judge 的 lower bound。

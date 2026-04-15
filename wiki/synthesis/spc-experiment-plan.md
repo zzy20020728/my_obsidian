@@ -46,14 +46,14 @@ status: active
 
 ### 每一阶段的角色
 
-| 阶段 | 目的 | 结论类型 |
-|------|------|----------|
-| Phase 0 | 跑通环境与日志 | 工程验证 |
-| Phase 1 | 在 TTRL 环境复现 SPAE 骨架 | 上界 / sanity check |
-| Phase 2 | 用 TTRL pseudo-label 替换 GT correctness | 第一版无监督 step reward |
-| Phase 3 | 加简单模块做对照：confidence / semantic entropy | baseline 比较 |
-| Phase 4 | 实现 SPC | 主实验 |
-| Phase 5 | 长训练与稳定性分析 | 论文结论 |
+| 阶段      | 目的                                     | 结论类型               |
+| ------- | -------------------------------------- | ------------------ |
+| Phase 0 | 跑通环境与日志                                | 工程验证               |
+| Phase 1 | 在 TTRL 环境复现 SPAE 骨架                    | 上界 / sanity check  |
+| Phase 2 | 用 TTRL pseudo-label 替换 GT correctness  | 第一版无监督 step reward |
+| Phase 3 | 加简单模块做对照：confidence / semantic entropy | baseline 比较        |
+| Phase 4 | 实现 SPC                                 | 主实验                |
+| Phase 5 | 长训练与稳定性分析                              | 论文结论               |
 
 ## 为什么这样设计
 
