@@ -1,7 +1,7 @@
 ---
 title: Wiki 索引
 type: index
-updated: 2026-04-11
+updated: 2026-04-15
 ---
 
 # Wiki 索引
@@ -127,6 +127,7 @@ updated: 2026-04-11
 - [[wiki/synthesis/step-level-se-proposal|Semantic Process Consistency 研究方案]] — 从 SPAE-SE 重构为 SPC：用 step-level semantic rollout consistency 纠正 TTRL 的 outcome-only 信号
 - [[wiki/synthesis/co-evolving-verifier-proposal|Co-Evolving Verifier 研究方案]] — SPC 的第二分支：让 PRM 跟着 RL 训练一起进化，三层自举架构（TTRL anchor → SPC signal → lightweight PRM）
 - [[wiki/synthesis/spc-experiment-plan|SPC 实验设计方案]] — 从 TTRL 环境复现 SPAE 骨架开始，逐步替换 GT correctness，最终落到 SPC 的分阶段实现路线
+- [[wiki/synthesis/spc-related-work-survey|SPC 相关工作文献调研报告]] — 20+ 轮 arXiv 搜索，37 篇论文按相关度分级（11 高/15 中/11 低），方法族谱系图，新颖性确认
 
 ## 学习计划 (plans/)
 > 秋招备战计划与进度

@@ -397,6 +397,26 @@ SPC 的四大独特卖点确认：
 - 更新 index.md：Step-Level Credit Assignment 分类新增 3 篇论文
 - 论文总数：40 → **43 篇**
 
+## [2026-04-15] research | SPC 相关工作系统性文献调研
+
+大规模 arXiv 搜索（20+ 轮），覆盖 trajectory divergence, token overlap, prefix sharing, rollout agreement, voting consistency, n-gram similarity, step-level credit assignment, rollout tree, branching rollout, gradient entanglement 等关键词组合。
+
+### 搜索结果
+- **37 篇**相关论文按相关度分级：
+  - 高度相关 11 篇：RTMC、GRSD、GiGPO、PRAISE、ELPO、VPPO、BranPO、BranchGRPO、GPO、Tree-GRPO、CSO
+  - 中度相关 15 篇：Math-Shepherd、OmegaPRM、Free Process Rewards、FreePRM、EpicPRM、CRM、PROF、PROGRS、SCAN、CPMI、FPA、Athena-PRM、GroundedPRM、iStar、UnPRM
+  - 低度相关 11 篇：TreePS-RAG、Jia et al.、EDU-PRM、rStar-Math、KAT/Step-SRPO、MC Net Info Gain、Lessons of PRMs、SPARE、Gradient Entanglement、ECHO、DART
+
+### 关键结论
+1. **SPC 新颖性确认**：无人做过"无监督 + 语义等价 + 短续写 probing + URLVR"的组合
+2. **最大威胁**：RTMC (2604.11037) 核心观察几乎一致但面向 agentic RL；GiGPO (2505.10978) anchor state grouping 高度类似
+3. **BranPO 重要发现**：分叉主要在尾部而非中间，对 SPC 假设构成挑战
+4. **Gradient Entanglement (FPA/Yuan et al.)** 为 SPC 提供重要理论 motivation
+
+### 文件更新
+- 创建 wiki/synthesis/spc-related-work-survey.md
+- 更新 index.md 索引
+
 ## [2026-04-13] synthesis | Dual-Network Outcome-Driven Co-Evolution 方案
 
 ### 背景
@@ -416,3 +436,34 @@ SPC 的四大独特卖点确认：
   - Positioning 新增 vs Grad2Reward 对比
   - 更新 tags 和 updated 日期
 - 评估结论：outcome-driven 有理论独立价值（探索度 > 蒸馏），但信号稀疏和双层优化稳定性是主要风险。定位为 co-evolving verifier 论文的实验变体（Exp 3），不独立成文
+
+## [2026-04-15] synthesis | SPC-Stat 零成本统计实现方案
+
+### 背景
+- SPC 原始方案（续写 probing）在实际训练环境下成本不可接受（每 step 需 ~10 万次短续写）
+- 用户提出"直接统计对比"路线：利用已有 64 条 rollout，按正确/错误组分组后统计 token overlap 和分叉点
+- 经讨论，确定为"中间数学实体一致性 + token n-gram 辅助"的双层信号设计
+
+### 文献调研
+- 执行 20+ 轮 arXiv 搜索，发现 **Rollout-Tree 方法族**（11 篇高度相关论文）
+- 深入阅读 3 篇最关键论文：
+  - **RTMC (2604.11037)**：agentic RL 中 hash 签名状态匹配→隐式树→per-step Q-values，与 SPC-Stat 核心观察几乎一致但面向 SWE-bench
+  - **GiGPO (2505.10978)**：anchor state grouping→micro relative advantage，exact string / LMS 匹配→agentic 场景
+  - **BranPO (2602.03719)**：发现 search agent 中分叉主要在尾部（但 domain-specific，数学推理可能不同）
+- 关键结论：**所有竞品面向 agentic/tool-use 场景，无人在 URLVR 数学推理中做纯统计的 step-level credit assignment**
+
+### SPC-Stat 方案设计
+- **Math Entity Extraction**：正则抽取数学实体（数值、方程、boxed 表达式），归一化处理
+- **Consensus Entity Discovery**：正确组高频 + 错误组低频 = 正确共识实体 $\mathcal{G}^+$；反之 = 错误独有实体 $\mathcal{B}$
+- **Step-Level 打分**：首次产出正确共识实体→正 reward，首次产出错误独有实体→负 reward
+- **Token n-gram 辅助**：实体抽取失败时回退到 4-gram Jaccard 相似度
+- **完全不需要步骤对齐**：只关心实体在第几步首次出现
+- **与 TTRL 整合**：$\hat{A}_{token}(t) = R^{TTRL} \cdot (1 + \lambda \cdot r_{step})$
+
+### 文件更新
+- 更新 wiki/synthesis/step-level-se-proposal.md（751→926 行）：
+  - 新增 "SPC-Stat: 零额外成本的统计实现" section（~140 行）
+  - 更新 Positioning：新增 7 个竞品对比（Rollout-Tree 方法族、GiGPO、RTMC、BranPO、ELPO、VPPO、FPA/Gradient Entanglement）
+  - 更新实验设计：新增 Phase 1b（SPC-Stat 离线验证）+ Phase 2 新增两个对照组 + 3 个新问题
+  - 更新 YAML frontmatter：tags、updated、sources
+- 创建 wiki/synthesis/spc-related-work-survey.md（37 篇论文调研报告）

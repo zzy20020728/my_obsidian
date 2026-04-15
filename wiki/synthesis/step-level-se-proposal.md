@@ -1,10 +1,10 @@
 ---
 title: "Semantic Process Consistency: 无监督步骤级纠错研究方案"
 type: synthesis
-tags: [semantic-process-consistency, SPC, step-level, URLVR, SPAE, TTRL, CoVo, process-reward, research-proposal, reward-hacking, DCRL, DARE, T3RL, DCPO, PIPO, CLIPO, SARL, Meta-TTRL, V-Zero, contrastive-learning, gradient-conflict, CoVerRL, SCRL, PowerFlow, DistriTTRL, TTVS, OLR, AsymGRPO, DBB, CSRS, SHAPE, imperfect-verifier, Self-Guide, PRAISE, SLATE, STEP, prefix-rollout, hidden-states, variance-reduction]
+tags: [semantic-process-consistency, SPC, step-level, URLVR, SPAE, TTRL, CoVo, process-reward, research-proposal, reward-hacking, DCRL, DARE, T3RL, DCPO, PIPO, CLIPO, SARL, Meta-TTRL, V-Zero, contrastive-learning, gradient-conflict, CoVerRL, SCRL, PowerFlow, DistriTTRL, TTVS, OLR, AsymGRPO, DBB, CSRS, SHAPE, imperfect-verifier, Self-Guide, PRAISE, SLATE, STEP, prefix-rollout, hidden-states, variance-reduction, SPC-Stat, rollout-tree, consensus-entity, math-entity-extraction, statistical-process-divergence]
 created: 2026-04-08
-updated: 2026-04-11
-sources: [wiki/papers/zuo-2025-ttrl.md, wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2025-covo.md, wiki/papers/zhang-2025-empo.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/he-2026-urlvr-scale.md, wiki/concepts/process-reward-model.md, wiki/concepts/reward-hacking.md, wiki/papers/du-2026-dual-consensus.md, wiki/papers/du-2026-dare.md, wiki/papers/liao-2026-t3rl.md, wiki/papers/ma-2026-dcpo.md, wiki/papers/cui-2026-clipo.md, wiki/papers/wang-2026-pipo.md, wiki/papers/wang-2026-sarl.md, wiki/papers/tan-2026-meta-ttrl.md, wiki/papers/wang-2026-v-zero.md, wiki/papers/pan-2026-coverrl.md, wiki/papers/yan-2026-scrl.md, wiki/papers/chen-2026-powerflow.md, wiki/papers/yang-2026-distribttrl.md, wiki/papers/bai-2026-ttvs.md, wiki/papers/yang-2026-olr.md, wiki/papers/gu-2026-asymgrpo.md, wiki/papers/kim-2026-dbb.md, wiki/papers/yu-2026-csrs.md, wiki/papers/ai-2026-shape.md, wiki/papers/plesner-2026-imperfect-verifier.md, wiki/papers/wang-2026-self-guide.md, wiki/papers/zhang-2026-praise.md, wiki/papers/liang-2026-step.md, wiki/papers/chen-2026-slate.md]
+updated: 2026-04-15
+sources: [wiki/papers/zuo-2025-ttrl.md, wiki/papers/wu-2026-spae.md, wiki/papers/zhang-2025-covo.md, wiki/papers/zhang-2025-empo.md, wiki/papers/ghimire-2026-prism.md, wiki/papers/he-2026-urlvr-scale.md, wiki/concepts/process-reward-model.md, wiki/concepts/reward-hacking.md, wiki/papers/du-2026-dual-consensus.md, wiki/papers/du-2026-dare.md, wiki/papers/liao-2026-t3rl.md, wiki/papers/ma-2026-dcpo.md, wiki/papers/cui-2026-clipo.md, wiki/papers/wang-2026-pipo.md, wiki/papers/wang-2026-sarl.md, wiki/papers/tan-2026-meta-ttrl.md, wiki/papers/wang-2026-v-zero.md, wiki/papers/pan-2026-coverrl.md, wiki/papers/yan-2026-scrl.md, wiki/papers/chen-2026-powerflow.md, wiki/papers/yang-2026-distribttrl.md, wiki/papers/bai-2026-ttvs.md, wiki/papers/yang-2026-olr.md, wiki/papers/gu-2026-asymgrpo.md, wiki/papers/kim-2026-dbb.md, wiki/papers/yu-2026-csrs.md, wiki/papers/ai-2026-shape.md, wiki/papers/plesner-2026-imperfect-verifier.md, wiki/papers/wang-2026-self-guide.md, wiki/papers/zhang-2026-praise.md, wiki/papers/liang-2026-step.md, wiki/papers/chen-2026-slate.md, wiki/synthesis/spc-related-work-survey.md]
 status: active
 ---
 
@@ -411,6 +411,149 @@ $$
 
 这部分不是首发版本必须做，但可以作为二阶段优化，保留成论文的效率扩展点。
 
+## SPC-Stat: 零额外成本的统计实现
+
+### 动机：SPC-Probe 的成本问题
+
+原始 SPC 方案（上文）依赖于在每个步骤边界做 M=5 次短续写 probing。在实际训练环境中（A800 GPU, batch_size=32, rollout=64, 单轮训练 ~9 小时），假设每条轨迹平均 10 个步骤，则每个 training step 需要额外 32 × 64 × 10 × 5 = **102,400 次短续写**，这在工程上不可接受。
+
+### 核心洞察：已有 rollout 本身就是信息金矿
+
+TTRL 训练中，每个问题已经采样了 64 条完整轨迹，通过 majority voting 得到伪标签。这 64 条轨迹本身蕴含了丰富的 step-level 信息——如果正确组的轨迹在某个中间步骤都产出了相同的关键数学实体（数值、方程、代数表达式），而错误组在这一步产出了不同的实体，那么这一步就是**关键决策点**。
+
+这一洞察来自 Rollout-Tree 方法族的启发（[[wiki/synthesis/spc-related-work-survey|文献调研报告]]），包括：
+- [[2604.11037|RTMC]]：观察到 group rollouts 在关键步骤隐式形成树结构
+- [[2505.10978|GiGPO]]：通过 anchor state grouping 实现跨轨迹的 step-level advantage
+- [[2602.03719|BranPO]]：发现 shared prefix + divergent suffix 结构中蕴含 contrastive signal
+
+但这些方法均面向 agentic/tool-use 场景（SWE-bench, ALFWorld, WebShop），其"状态匹配"依赖环境返回的离散状态（hash 签名、exact string match）。在数学推理中，64 条 CoT 在 token 级别几乎不可能共享前缀——即使两条轨迹在第 3 步都做了"两边同除以 2"，具体措辞也完全不同。
+
+**SPC-Stat 的核心创新**：在自然语言数学推理中，用**数学实体的语义等价**替代 token 级别的状态匹配，实现零额外成本的 step-level credit assignment。
+
+### 方法设计
+
+#### Step 1: 数学实体抽取（Math Entity Extraction）
+
+对每条轨迹 $\tau_i$ 的每个步骤 $s_k^i$，用正则表达式抽取数学实体集合：
+
+$$E_k^i = \text{extract}(s_k^i)$$
+
+实体类型包括：
+- **数值**：整数、分数、小数（如 `24`, `3/2`, `0.75`），统一归一化为规范形式
+- **boxed 答案**：`\boxed{...}` 内容
+- **等式/方程**：`x = ...`, `y^2 + 2y = 5`
+- **关键代数表达式**：经过简单标准化后的数学子串
+
+实现上用一组正则表达式 + 简单归一化（如 `3/2 = 1.5` 统一表示）。
+
+#### Step 2: 共识实体发现（Consensus Entity Discovery）
+
+将 64 条轨迹按最终答案分组：
+
+$$\mathcal{C} = \{\tau_i \mid a_i^{final} = a_{maj}\}, \quad \mathcal{E} = \{\tau_i \mid a_i^{final} \neq a_{maj}\}$$
+
+统计正确组中所有实体的出现频率：
+
+$$\text{freq}_{\mathcal{C}}(e) = \frac{|\{\tau_i \in \mathcal{C} \mid e \in \bigcup_k E_k^i\}|}{|\mathcal{C}|}$$
+
+定义三类实体：
+
+| 类型 | 定义 | 含义 |
+|------|------|------|
+| **正确共识实体** $\mathcal{G}^+$ | $\text{freq}_{\mathcal{C}}(e) \geq 0.5 \wedge \text{freq}_{\mathcal{E}}(e) < 0.2$ | 正确组多数都经过、错误组很少出现的关键中间结果 |
+| **错误独有实体** $\mathcal{B}$ | $\text{freq}_{\mathcal{E}}(e) \geq 0.5 \wedge \text{freq}_{\mathcal{C}}(e) < 0.2$ | 错误组走入歧途的标志性中间结果 |
+| **共享实体** | 两组都高频出现 | 问题本身的基本量，无区分能力 |
+
+**优点：完全不需要步骤对齐**。不同轨迹步骤数不同、步骤边界不对齐，但实体发现只关心"这个实体在这条轨迹中出现了没有、在第几步出现"。
+
+#### Step 3: Step-Level 打分
+
+对轨迹 $\tau_i$ 的 step $k$：
+
+**主信号：共识实体产出**
+
+$$A_k^i = \begin{cases} +1 & \text{if } \exists e \in \mathcal{G}^+ : e \in E_k^i \wedge e \notin \bigcup_{j<k} E_j^i \quad \text{(首次产出正确共识实体)} \\ -1 & \text{if } \exists e \in \mathcal{B} : e \in E_k^i \wedge e \notin \bigcup_{j<k} E_j^i \quad \text{(首次产出错误独有实体)} \\ 0 & \text{otherwise} \end{cases}$$
+
+**辅助信号：Token 4-gram Jaccard 相似度**
+
+对无法抽取实体的步骤（如纯文字推理描述），使用归一化进度对齐后的 n-gram 统计：
+
+$$B_k^i = \text{avg}_{j \in \mathcal{C}, j \neq i} J(s_k^i, s_k^j) - \text{avg}_{j \in \mathcal{E}} J(s_k^i, s_k^j)$$
+
+其中 $J(\cdot,\cdot)$ 是 4-gram Jaccard 相似度。正值 = 与正确组表述更相似，负值 = 与错误组更相似。
+
+**综合 Step Reward**：
+
+$$r_{step}(k, i) = \alpha \cdot A_k^i + (1 - \alpha) \cdot B_k^i \cdot \mathbb{1}[A_k^i = 0]$$
+
+建议 $\alpha = 0.8$，优先使用实体信号，实体信号缺失时回退到 n-gram 辅助。
+
+#### Step 4: 与 TTRL Outcome Reward 整合
+
+$$\hat{A}_{token}(t) = R^{TTRL}_i \cdot (1 + \lambda \cdot r_{step}(k(t), i))$$
+
+其中 $k(t)$ 是 token $t$ 所属的步骤编号，$\lambda$ 控制 step shaping 的强度。
+
+含义：
+- $R^{TTRL} = 1$（正确）且 $r_{step} > 0$：**强正向更新**——关键正确步骤获得额外 credit
+- $R^{TTRL} = 1$ 且 $r_{step} = 0$：正常正向更新——无可辨识实体的普通步骤
+- $R^{TTRL} = 1$ 且 $r_{step} < 0$：**削弱正向更新**——正确轨迹中的可疑步骤（产出了错误组独有实体）
+- $R^{TTRL} = -1$：依然是负向更新，但 step signal 区分"错在哪一步"
+
+### Trajectory-Level 诊断指标
+
+**锁定进度（Lock-in Progress）**：
+
+$$L(\tau_i) = \frac{\min\{k \mid \forall k' \geq k, \exists e \in \mathcal{G}^+ : e \in E_{k'}^i\}}{T_i}$$
+
+正确轨迹的 $L$ 应比错误轨迹更低（更早锁定到共识中间结果）。
+
+**共识覆盖率（Consensus Coverage）**：
+
+$$\text{Cov}(\tau_i) = \frac{|\mathcal{G}^+ \cap \bigcup_k E_k^i|}{|\mathcal{G}^+|}$$
+
+正确轨迹应覆盖更多共识实体。
+
+### SPC-Stat vs SPC-Probe vs Rollout-Tree 方法族
+
+| 维度 | SPC-Stat (ours) | SPC-Probe (原始方案) | RTMC/GiGPO | Tree-GRPO |
+|------|-----------------|---------------------|------------|-----------|
+| 额外模型调用 | **零** | ~10 万次/step | 零 | 需要完整 rollout |
+| 状态匹配方式 | 数学实体等价 + n-gram | 续写答案语义等价 | hash/exact string | prefix tree |
+| 适用领域 | 数学推理 URLVR | 数学推理 URLVR | agentic (SWE/UI) | math + code |
+| 需要 GT | **否** | 否 | 否 | 用 GT 做 reward |
+| 步骤对齐 | **不需要** | probing point | 环境 turn 天然对齐 | prefix 天然对齐 |
+| 信号粒度 | step-level | step-level | step-level | step-level |
+| 理论支撑 | gradient entanglement (FPA) | CoVo consistency insight | MC estimation theory | shared prefix variance reduction (SLATE) |
+
+### SPC-Stat 的风险与缓解
+
+#### 风险 1：数学实体抽取质量不足
+
+并非所有步骤都会产出可抽取的数学实体。纯文字推理步骤（如"考虑用配方法"）没有明确的数值或方程。
+
+**缓解**：
+1. n-gram 辅助信号作为 fallback
+2. 实体抽取失败的步骤不给信号（precision-first 原则，参考 [[wiki/papers/plesner-2026-imperfect-verifier|Imperfect Verifier]]）
+3. 离线统计实体抽取覆盖率，如果 > 60% 的步骤能抽到实体则可行
+
+#### 风险 2：共识实体可能包含"共享错误"
+
+如果大多数正确轨迹碰巧都经过同一个不必要的中间步骤，该实体也会被选为共识实体。
+
+**缓解**：
+1. 要求正确组独有（$\text{freq}_{\mathcal{E}} < 0.2$），排除两组都高频的实体
+2. 实体贡献度加权——越晚出现的共识实体权重越低（因为越晚越可能是"回声"而非"驱动力"）
+
+#### 风险 3：BranPO 发现分叉主要在尾部
+
+BranPO 发现在 search agent 中，分叉主要发生在最后一步。如果数学推理也如此，那么 SPC-Stat 的"中间步骤分叉检测"的价值会打折。
+
+**缓解**：
+1. BranPO 的结论是 domain-specific 的（search agent），数学推理中一个早期逻辑错误可以 derail 整条轨迹
+2. 实验中直接验证：统计数学推理中正确/错误组实体分叉的位置分布
+3. 如果确实以尾部分叉为主，可以调整为"BranPO-style suffix contrastive"与 SPC-Stat 结合
+
 ## 实验设计
 
 ### Phase 1: 离线机制验证
@@ -432,6 +575,25 @@ $$
 - trajectory-level Pearson / Spearman
 - earliest error exposure step
 
+#### Phase 1b: SPC-Stat 离线验证
+
+目标：验证 SPC-Stat 的共识实体发现和分叉检测是否有效。
+
+实验：
+
+1. 对 1000 个数学样本各采样 64 条轨迹（复用 TTRL 训练数据）
+2. 运行数学实体抽取，统计覆盖率（多少步骤能抽到 ≥1 个实体）
+3. 运行共识实体发现，检查 $|\mathcal{G}^+|$ 和 $|\mathcal{B}|$ 的分布
+4. 统计正确组 vs 错误组的分叉位置分布（验证 BranPO 的"尾部分叉"在数学推理中是否成立）
+5. 比较共识实体首次出现步骤：正确组 vs 错误组的锁定进度 $L(\tau)$
+
+关键指标：
+
+- 实体抽取覆盖率（目标 > 60%）
+- 共识实体数量及其区分能力（正确组 vs 错误组的频率差异）
+- 分叉位置分布（归一化进度的直方图）
+- 锁定进度 $L(\tau)$ 的组间差异（t-test）
+
 ### Phase 2: RL 训练对比
 
 | 实验组 | Outcome Signal | Step Signal | 需要 GT? |
@@ -440,6 +602,8 @@ $$
 | TTRL + old SC | majority voting | semantic certainty | 否 |
 | TTRL + CoVo-style shaping | majority voting | likelihood consistency | 否 |
 | **TTRL + SPC (ours)** | majority voting | semantic process consistency | 否 |
+| **TTRL + SPC-Stat (ours)** | majority voting | 共识实体 + n-gram 统计分叉 | 否 |
+| **TTRL + SPC-Stat (entity only)** | majority voting | 仅共识实体信号（无 n-gram） | 否 |
 | SPAE | GT binary | GT-based correctness | 是 |
 
 评估数据集：AIME2024/2025、AMC23、MATH500。
@@ -449,6 +613,10 @@ $$
 1. SPC 是否优于纯 TTRL？
 2. SPC 是否优于旧的 SC 替代方案？
 3. SPC 是否优于 CoVo-style likelihood consistency？
+
+4. SPC-Stat（零成本）是否接近 SPC-Probe（高成本）的效果？
+5. n-gram 辅助信号是否真的有增益？（entity only vs full SPC-Stat）
+6. 分叉检测在哪些类型的数学问题上最有效？（代数 vs 几何 vs 组合）
 
 ### Phase 3: 长期稳定性验证
 
@@ -542,6 +710,13 @@ $$
 - vs [[wiki/papers/zhang-2026-praise|PRAISE]]：**与 SPC 思想最接近的已有工作。** 两者都从 prefix 处做 rollout 得到 intermediate answer，用 answer 质量变化估计 step reward。关键差异化：(1) PRAISE 在 agentic search（multi-hop QA）中做，prefix 是 search turn 级别；SPC 在数学推理中做，prefix 是 reasoning step 级别。(2) PRAISE 用 GT answer scoring（$v_t = R(\hat{y}_t, y)$），SPC 与 final answer 对比（无监督）。(3) PRAISE 用 adjacent prefix gains（$r_t^{proc} = \alpha(v_t - v_{t-1})$），SPC 用 semantic equivalence consistency（$SPC_k = \frac{1}{M}\sum e_k^{(m)}$）。(4) PRAISE 用 PPO，SPC 用 GRPO/DAPO。总结：PRAISE 验证了"从 prefix 做 rollout 估计 step reward"这一范式的有效性，但它依赖 GT 且面向 agentic search；SPC 的核心卖点是**无监督 + 语义等价判断 + 面向数学推理**。
 - vs [[wiki/papers/chen-2026-slate|SLATE]]：SLATE 也从 shared prefix 做 k 个 continuation 估计 step-level advantage，理论证明方差降低 T 倍。关键差异化：(1) SLATE 用 LLM judge 做 dense reward（需要外部 LLM），SPC 用 self-consistency 信号（无外部依赖）。(2) SLATE 的目标是 step-level advantage estimation 的方差降低，SPC 的目标是无监督 process correction。(3) SLATE 的 continuation 是完整 rollout 到最终答案，SPC 是短续写 probing。**可借鉴点**：SLATE 的方差降低理论（Theorem 1: $\text{Var} \propto 1/T$）为 SPC 的 prefix-based probing 提供理论支撑——共享前缀减少采样方差是有严格数学证明的。
 - vs [[wiki/papers/liang-2026-step|STEP]]：STEP 用 hidden states 训练 lightweight MLP scorer 预测 trace quality，用于 inference-time pruning。关键差异化：(1) STEP 用于 test-time 推理加速（pruning），SPC 用于 training-time credit assignment。(2) STEP 的核心发现——"hidden states 在前 25% 步骤就能区分正确/错误 traces"——为 SPC probing 提供了重要佐证：如果 hidden states 在早期就编码了 trace quality 信息，那么 step-level probing（让模型从当前 state 短续写）应该也能在早期捕获过程质量。(3) STEP 的 2-layer MLP scorer（开销 < 10⁻⁶）可作为 SPC Probe Acceleration 阶段的参考架构。
+- vs **Rollout-Tree 方法族** (RTMC/Tree-GRPO/BranchGRPO)：这些方法利用 group rollouts 在关键步骤隐式形成树结构，通过状态匹配实现 step-level credit assignment。**关键差异**：(1) 全部面向 agentic/tool-use 场景（SWE-bench, ALFWorld），状态匹配依赖环境返回的离散状态（hash 签名、exact string match）；数学推理中 64 条 CoT 在 token 级别几乎不可能共享前缀，需要语义级别的实体匹配。(2) SPC-Stat 用数学实体等价替代 token 状态匹配，是 Rollout-Tree 思想在自然语言数学推理中的首次实现。(3) SPC-Stat 完全无监督（TTRL pseudo-label），Rollout-Tree 方法族多数用 GT reward。
+- vs [[2505.10978|GiGPO]]：GiGPO 的 anchor state grouping 与 SPC-Stat 的共识实体发现在思想层面高度同构——都是"跨轨迹找到相同状态，比较从该状态出发的不同动作的收益"。关键差异：GiGPO 用环境状态精确匹配（exact string / LMS ≥ 0.9），SPC-Stat 用数学实体语义等价。GiGPO 计算 discounted return 做 micro relative advantage，SPC-Stat 用共识实体首次出现做 binary credit。
+- vs [[2604.11037|RTMC]]：RTMC 是 SPC-Stat 在 agentic 领域的近似实现——核心观察完全一致（rollouts 共享前缀→隐式树→分支发散→per-step Q-values）。差异化：(1) RTMC 用 hand-crafted state-action signatures（hash of edit content, view buckets），SPC-Stat 用 regex-based math entity extraction。(2) RTMC 面向 SWE-bench (code agent)，SPC-Stat 面向 URLVR 数学推理。(3) RTMC 需要 prior-based value smoothing（因为大多数状态只访问一次），SPC-Stat 的共识实体天然在正确组内有多次"访问"。
+- vs [[2602.03719|BranPO]]：BranPO 发现在 search agent 中分叉主要在尾部，并在 shared prefix 上构建 contrastive suffix 训练。**重要参考**：BranPO 的尾部分叉结论是否适用于数学推理需要实验验证；如果数学推理中分叉确实在早中期（逻辑错误导致），则 SPC-Stat 的全步骤分析比 BranPO 的固定尾部分支更有价值。
+- vs [[2602.09598|ELPO]]：ELPO 用 binary-search rollout tree 定位第一个不可恢复的错误步骤（irrecoverable step）。思想与 SPC-Stat 的分叉点检测一致，但 ELPO 需要额外 rollout（binary search），SPC-Stat 利用已有 64 条 rollout 零成本实现。
+- vs [[2601.18984|VPPO]]：VPPO 将轨迹分为 verified correct prefix 和 erroneous suffix，前者正奖励、后者惩罚。SPC-Stat 的共识实体覆盖率（$\text{Cov}$）和锁定进度（$L$）提供了类似但更细粒度的分割——不是 binary 的 prefix/suffix，而是每步的 credit 量化。差异：VPPO 需要 GT + PRM，SPC-Stat 完全无监督。
+- vs **FPA / Gradient Entanglement** ([[2509.19893|FPA]], [[2410.13828|Yuan et al. 2024]])：FPA 从理论上证明了正确/错误轨迹共享大量 token overlap 导致梯度冲突。SPC-Stat 的共识实体分析正是解决此问题的直接手段——通过精确定位正确/错误组的分叉实体，将 credit 集中在真正区分对错的步骤上，减少 shared token 上的梯度冲突。
 
 
 ## 2026 年新论文对 SPC 方案的系统性启发
